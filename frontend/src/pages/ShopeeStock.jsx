@@ -167,6 +167,7 @@ export default function ShopeeStock() {
   const [loading, setLoading] = useState(false);
   
   const [excelData, setExcelData] = useState([]);
+  const [uploadedFileName, setUploadedFileName] = useState("");
   const [printDate, setPrintDate] = useState("");
   const [printFontSize, setPrintFontSize] = useState(11);
   const [printLineSpacing, setPrintLineSpacing] = useState('normal');
@@ -221,6 +222,7 @@ export default function ShopeeStock() {
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setUploadedFileName(file.name);
     const reader = new FileReader();
     reader.onload = (evt) => {
       const bstr = evt.target.result;
@@ -323,13 +325,13 @@ export default function ShopeeStock() {
       if (rowOrderId !== currentOrderId) { itemList = []; currentOrderId = rowOrderId; }
       let prdInfo = stockData.find(p => (p.SKUIDCode || "").includes(skuCode));
       if (!prdInfo) prdInfo = stockData.find(p => (p.VariantianName || "").includes((row["Variation Name"] || "") + (row["Product Name"] || "").substring(0, 20)));
-      let sameCategoryCountID = prdInfo?.SameCategoryCountID || "UNKNOWN";
+      let SameCategoryCountID = prdInfo?.SameCategoryCountID || "UNKNOWN";
       let jsonQuantity = prdInfo?.SameCategoryCountQuantity || 1;
       let customizeName = prdInfo?.CustomizeName || ((row["Variation Name"] || "") + " | " + (row["Product Name"] || ""));
       let categorySeqNr = parseInt(prdInfo?.categorySeqNr || prdInfo?.CategorySeqNr || 0);
       const finalQty = jsonQuantity * rawQuantity;
-      if (sameCategoryCountID !== "UNKNOWN" && sameCategoryCountID !== "") {
-        const matchedItem = itemList.find(i => i.SameCategoryCountID === sameCategoryCountID);
+      if (SameCategoryCountID !== "UNKNOWN" && SameCategoryCountID !== "") {
+        const matchedItem = itemList.find(i => i.SameCategoryCountID === SameCategoryCountID);
         if (matchedItem) matchedItem.Quantity += finalQty;
         else { const ni = { orderID: currentOrderId, Name: prdInfo?.SKUIDCode || skuCode, Quantity: finalQty, CustomizeName: customizeName, CategorySeqNr: categorySeqNr, SameCategoryCountID }; itemList.push(ni); GblitemList.push(ni); }
       } else {
@@ -445,15 +447,65 @@ export default function ShopeeStock() {
   });
 
   const lineSpacingClass = { tight: 'py-0', normal: 'py-0.5', relaxed: 'py-1' }[printLineSpacing];
-  const renderPairTable = (t1, l1, t2, l2) => {
-    const max = Math.max(l1.length, l2.length); if (max === 0) return null;
+
+  const renderPairTable = (title1, list1, title2, list2) => {
+    const max = Math.max(list1.length, list2.length);
+    if (max === 0) return null;
     return (
-      <div className="mb-4 font-mono" style={{ fontSize: `${printFontSize}px` }}>
-        <div className="flex border-b border-black font-bold pb-1 bg-gray-100/10 print:bg-gray-200"><div className="flex-1 px-2 border-r border-black">{t1}</div><div className="flex-1 px-2">{t2}</div></div>
+      <div className="mb-6 font-mono" style={{ fontSize: `${printFontSize}px` }}>
+        <div className="flex border-b border-black font-bold pb-1 bg-gray-100/10 print:bg-gray-200">
+          <div className="flex-1 px-2 border-r border-black">{title1}</div>
+          <div className="flex-1 px-2">{title2}</div>
+        </div>
         {Array.from({ length: max }).map((_, i) => (
           <div key={i} className={`flex border-b border-black/20 print:border-black ${lineSpacingClass}`}>
-            <div className="flex-1 px-2 border-r border-black/20 print:border-black">{l1[i] && '☐ ' + l1[i].DisplayName}</div>
-            <div className="flex-1 px-2">{l2[i] && '☐ ' + l2[i].DisplayName}</div>
+            <div className="flex-1 px-2 border-r border-black/20 print:border-black">
+              {list1[i] && (
+                <div className="flex items-start">
+                  <span className="mr-1">☐</span>
+                  <span>{list1[i].DisplayName}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex-1 px-2">
+              {list2[i] && (
+                <div className="flex items-start">
+                  <span className="mr-1">☐</span>
+                  <span>{list2[i].DisplayName}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderQuintTable = () => {
+    const w = nonCutStickListColors.white;
+    const b = nonCutStickListColors.black;
+    const g = nonCutStickListColors.grey;
+    const bl = nonCutStickListColors.blue;
+    const bge = nonCutStickListColors.beige;
+    const max = Math.max(w.length, b.length, g.length, bl.length, bge.length);
+    if (max === 0) return null;
+
+    return (
+      <div className="mt-6 mb-4 font-mono" style={{ fontSize: `${printFontSize}px` }}>
+        <div className="flex border-b border-black font-bold pb-1 bg-gray-100/10 print:bg-gray-200">
+          <div className="flex-1 px-1 border-r border-black text-center">White</div>
+          <div className="flex-1 px-1 border-r border-black text-center">Black</div>
+          <div className="flex-1 px-1 border-r border-black text-center">Grey</div>
+          <div className="flex-1 px-1 border-r border-black text-center">Blue</div>
+          <div className="flex-1 px-1 text-center">Beige</div>
+        </div>
+        {Array.from({ length: max }).map((_, i) => (
+          <div key={i} className={`flex border-b border-black/20 print:border-black ${lineSpacingClass}`}>
+            <div className="flex-1 px-1 border-r border-black/20 print:border-black text-[10px]">{w[i] && '☐ ' + w[i].DisplayName}</div>
+            <div className="flex-1 px-1 border-r border-black/20 print:border-black text-[10px]">{b[i] && '☐ ' + b[i].DisplayName}</div>
+            <div className="flex-1 px-1 border-r border-black/20 print:border-black text-[10px]">{g[i] && '☐ ' + g[i].DisplayName}</div>
+            <div className="flex-1 px-1 border-r border-black/20 print:border-black text-[10px]">{bl[i] && '☐ ' + bl[i].DisplayName}</div>
+            <div className="flex-1 px-1 text-[10px]">{bge[i] && '☐ ' + bge[i].DisplayName}</div>
           </div>
         ))}
       </div>
@@ -476,19 +528,53 @@ export default function ShopeeStock() {
               <label className="flex items-center space-x-2 px-6 py-3 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl cursor-pointer hover:bg-blue-600/30">
                 <Upload size={20} /><span>Upload Excel</span><input type="file" className="hidden" accept=".xlsx, .xls" onChange={handleFileUpload} />
               </label>
+              {uploadedFileName && (
+                <div className="flex flex-col">
+                  <span className="text-blue-400 text-sm font-medium">{uploadedFileName}</span>
+                  <span className="text-gray-500 text-[10px]">{excelData.length} rows loaded</span>
+                </div>
+              )}
               <button onClick={calculateStock} disabled={excelData.length === 0} className="px-6 py-3 bg-blue-600 text-white rounded-xl disabled:opacity-50">Calculate Stock</button>
             </div>
           </div>
           {(hookLoopWhiteList.length > 0 || otherItemList.length > 0) && (
             <div className="bg-[#141414] border border-white/5 rounded-2xl p-6 print:bg-white print:text-black">
-              <div className="flex justify-between mb-6 print:hidden">
-                <h2 className="text-xl font-bold text-white">Print View</h2>
-                <button onClick={handlePrint} className="px-4 py-2 bg-white/10 text-white rounded-lg border border-white/10 flex items-center gap-2"><Printer size={16}/>Print</button>
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-6 print:hidden">
+                <h2 className="text-xl font-bold text-white tracking-tight">Print View</h2>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {/* Font size control */}
+                  <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
+                    <span className="text-xs text-gray-400 whitespace-nowrap">Font</span>
+                    <button onClick={() => setPrintFontSize(s => Math.max(7, s - 1))} className="text-gray-400 hover:text-white px-1 text-sm font-bold">−</button>
+                    <span className="text-white text-sm font-mono w-6 text-center">{printFontSize}</span>
+                    <button onClick={() => setPrintFontSize(s => Math.min(16, s + 1))} className="text-gray-400 hover:text-white px-1 text-sm font-bold">+</button>
+                  </div>
+                  {/* Line spacing control */}
+                  <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5">
+                    <span className="text-xs text-gray-400 mr-1 whitespace-nowrap">Spacing</span>
+                    {['tight', 'normal', 'relaxed'].map(s => (
+                      <button key={s} onClick={() => setPrintLineSpacing(s)}
+                        className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${printLineSpacing === s ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+                        {s.charAt(0).toUpperCase() + s.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                  <button onClick={handlePrint}
+                    className="flex items-center space-x-2 px-4 py-2 bg-white/5 text-gray-300 rounded-lg hover:bg-white/10 hover:text-white transition-colors border border-white/10">
+                    <Printer className="w-4 h-4" />
+                    <span>Print List</span>
+                  </button>
+                </div>
+              </div>
+              <div className="hidden print:block mb-4 text-black font-mono">
+                <h2 className="text-lg font-bold pb-1 border-b border-black mb-2">Check Stock Item Mark</h2>
+                <p className="text-xs text-black mb-4">Date printed: {printDate}</p>
               </div>
               <div className="print:text-black">
                 {renderPairTable("Black (Hook Loop)", hookLoopBlackList, "White (Hook Loop)", hookLoopWhiteList)}
                 {renderPairTable("Black No Glue", hookLoopBlackNoGlueList, "White No Glue", hookLoopWhiteNoGlueList)}
-                {otherItemList.length > 0 && <div className="mt-4"><h3 className="font-bold border-b border-black mb-2">Other Items</h3>{otherItemList.map((it, idx) => <div key={idx} className="font-mono text-sm">☐ {it.DisplayName} - {it.quantity} Unit</div>)}</div>}
+                {renderQuintTable()}
+                {otherItemList.length > 0 && <div className="mt-4"><h3 className="font-bold border-b border-black mb-2 pb-1" style={{ fontSize: `${printFontSize + 2}px` }}>Other Items List</h3>{otherItemList.map((it, idx) => <div key={idx} className={`font-mono ${lineSpacingClass}`} style={{ fontSize: `${printFontSize}px` }}>☐ ({it.CategorySeqNr === 1000 ? 0 : it.CategorySeqNr}) - {it.DisplayName} - {it.quantity} Unit</div>)}</div>}
               </div>
             </div>
           )}
