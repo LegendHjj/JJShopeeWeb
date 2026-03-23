@@ -1,0 +1,60 @@
+# Migration to Web Application
+
+## Goal Description
+Migrate the legacy desktop Shopee management tool into a modern, responsive web application. The new system will feature a React + Tailwind CSS frontend for a clean, dark-themed dashboard and a Node.js backend to serve as an API for reading and writing to the existing JSON data structures (`orgProductInfo.json` and `prodActPriceCalc.json`).
+
+## User Review Required
+> [!NOTE]
+> As requested, the backend will exclusively read and write from the local JSON files (`orgProductInfo.json` and `prodActPriceCalc.json`) instead of an SQL database. 
+> 
+> Also, for authentication, I will implement a single-user login with a hardcoded secure password (configurable in `.env`), since this looks like a personal management tool.
+
+## Proposed Changes
+
+### 1. Initialize Project Workspace
+I will create a single workspace folder for the web application (e.g., `ShopeeWeb`) containing:
+- `backend/`: Node.js Express server to handle API requests and read/write JSON files.
+- `frontend/`: React application configured via Vite and styled with Tailwind CSS.
+
+---
+
+### 2. Backend (Node.js)
+#### [NEW] `backend/server.js`
+- Express server initialization on port 3001.
+- Setup CORS to allow frontend communication.
+#### [NEW] `backend/routes/auth.js`
+- Setup simple token-based simulated authentication for the Login page.
+#### [NEW] `backend/routes/data.js`
+- GET endpoints to serve `orgProductInfo.json` and `prodActPriceCalc.json`.
+- POST endpoints to save updates to the JSON files safely.
+
+---
+
+### 3. Frontend (React + Tailwind CSS)
+#### [NEW] `frontend/src/App.jsx`
+- Main application routing (Login, Dashboard, Income Calculator, Profit Manager).
+- Implement dark theme styling base.
+#### [NEW] `frontend/src/pages/Login.jsx`
+- A sleek, dark-themed login form that sets a token in LocalStorage for auto-login on return.
+#### [NEW] `frontend/src/pages/Dashboard.jsx`
+- Home view displaying "Total Potential Profit" and "Recent Calculations".
+#### [NEW] `frontend/src/pages/IncomeCalculator.jsx` (Interface A)
+- Port of `CalculateOverviewForm.cs`.
+- File upload for Excel/manual input table.
+- Implement logic: Packing fee (0.40 default), Extra Fees toggle (25% if discounted, 16% if not).
+#### [NEW] `frontend/src/pages/ProfitManager.jsx` (Interface B)
+- Port of `ProductOverallCost.cs`.
+- Data grid to edit prices and see real-time calculated changes (`sellingPriceProfit`, `MaxDiscountSellingPrice`).
+- Implements `blnCalcPer10` logic for small items.
+
+## Verification Plan
+
+### Automated/Local Tests
+1. Start both the Node.js backend and React frontend.
+2. Verify that visiting the root unauthenticated redirects to the Login page.
+3. Test authentication using the configured credentials.
+4. Verify the dashboard loads the JSON data via network requests.
+
+### Manual Verification
+1. Open the **Income Calculator** and input dummy sales numbers matching an existing test case from the desktop app; observe if the calculated Ext Profit and Extra Fees match the C# output exactly.
+2. Open the **Price & Profit Manager**, update an `orgPrice` or `sellingPrice`, and verify real-time computation updates `sellingPriceProfitAfterDisc` automatically. Click "Save" to ensure the JSON properly rewrites locally.

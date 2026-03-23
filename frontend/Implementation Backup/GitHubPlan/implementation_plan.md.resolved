@@ -1,0 +1,143 @@
+# Migrate ShopeeWeb to Firebase + GitHub Pages
+
+## Background
+
+Your Vite/React frontend currently talks to a local Node.js/Express backend ([server.js](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/backend/server.js)) that reads/writes JSON files stored on your C# app's local disk. The goal is to:
+
+1. **Remove the backend entirely** — no more [server.js](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/backend/server.js) required.
+2. **Connect the frontend directly to Cloud Firestore** using the Firebase JS SDK.
+3. **Host the frontend for free** on GitHub Pages.
+4. **Use Firebase Firestore as the database** (data already imported — 4 collections confirmed).
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Authentication Change**: The current login checks a password against your Express backend (`POST /api/auth/login`). With no backend, we need a new auth approach.
+>
+> **Recommended**: Replace with a simple **hardcoded password check** in the frontend JavaScript (stored in a [.env](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/backend/.env) file as `VITE_APP_PASSWORD=yourpassword`). This is compiled into the static bundle. Since this is an **internal tool** and GitHub Pages repos can be private, this is acceptable.
+>
+> If you prefer something stronger (e.g., Firebase Anonymous Auth + Firestore rules), let me know before I proceed.
+
+> [!IMPORTANT]
+> **Firestore Security Rules**: To allow your Vite frontend to read/write Firestore, the rules must be changed from `allow read, write: if false` to something permissive. I will update them to allow all reads but require a custom header/no-auth rule since this is internal. The simplest safe option for internal tools:
+> ```
+> allow read, write: if true;
+> ```
+> This means **anyone who knows your Firebase Web Config can read/write your data**. Since it's internal and not linked publicly, this is acceptable. If you want stricter rules, tell me.
+
+> [!WARNING]
+> **Firebase Admin Key**: The file [shop-jj-app-firebase-adminsdk-fbsvc-887a2f804e.json](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/frontend/firebase-import-script/shop-jj-app-firebase-adminsdk-fbsvc-887a2f804e.json) contains a **private key** that must NEVER be committed to GitHub. I will add it to [.gitignore](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/frontend/.gitignore).
+
+---
+
+## Proposed Changes
+
+### Firebase SDK + Config
+
+#### [NEW] `frontend/src/lib/firebase.js`
+Initialize the Firebase Web SDK (NOT admin SDK) using public config values stored in [.env](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/backend/.env) variables. The Firebase **web config** (apiKey, projectId, etc.) is safe to expose publicly — Firestore rules control access.
+
+#### [NEW] `frontend/src/lib/firestoreApi.js`
+Helper module with functions for all data operations:
+- `fetchCollection(collectionName)` → reads all documents, returns as array
+- `saveCollection(collectionName, items)` → writes a batch of documents (using `seqNr` as doc ID where possible, or auto-ID otherwise)
+- `saveDocument(collectionName, docId, data)` → updates single document
+
+> [!NOTE]
+> **How document IDs work**: Your data was imported with auto-generated IDs (random strings like `0KX8IeIbFCueCq2GmcYY`). When we read a collection, we'll fetch all docs and include their Firestore doc ID. When saving, we'll update by the same doc ID (or use `seqNr` as the document ID for clean lookups).
+
+#### [NEW] `frontend/.env`
+```
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=shop-jj-app.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=shop-jj-app
+VITE_FIREBASE_STORAGE_BUCKET=shop-jj-app.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=...
+VITE_FIREBASE_APP_ID=...
+VITE_APP_PASSWORD=yourpassword
+```
+> I will need your **Firebase Web Config** values (API key, App ID etc.) — these are different from the Admin SDK key. You can find them in Firebase Console → Project Settings → Your Apps → Web App → Config. OR let me know and I'll prompt you for them.
+
+---
+
+### Authentication
+
+#### [MODIFY] [frontend/src/context/AuthContext.jsx](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/frontend/src/context/AuthContext.jsx)
+Replace the [login()](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/frontend/src/context/AuthContext.jsx#20-39) function from calling `api.post('/auth/login')` to simply comparing the entered password against `import.meta.env.VITE_APP_PASSWORD`.
+
+---
+
+### Data Layer — Replace [api.js](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/frontend/src/lib/api.js) with Firestore
+
+#### [MODIFY] [frontend/src/pages/ShopeeStock.jsx](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/frontend/src/pages/ShopeeStock.jsx)
+- [fetchStockData()](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/frontend/src/pages/ShopeeStock.jsx#30-41): Replace `api.get('/data/prodStockCalc')` → `fetchCollection('shopeeProdStockCalc')`
+- [handleSaveStock()](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/frontend/src/pages/ShopeeStock.jsx#397-409): Replace `api.post('/data/prodStockCalc', stockData)` → batch-write each item back to Firestore using its document ID
+
+#### [MODIFY] [frontend/src/pages/ProfitManager.jsx](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/frontend/src/pages/ProfitManager.jsx)
+- [fetchData()](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/frontend/src/pages/ProfitManager.jsx#288-304): Replace `api.get('/data/prodActPriceCalc')` → Firestore. Source toggle (`shopee` / `tiktok`) maps to different collections:
+  - Shopee: `shopeeProdActPriceCalc` and `shopeeOrgProductInfo`
+  - TikTok: `tiktokProdActPriceCalcTikTok` and _(TikTok org info collection — not yet imported, will gracefully handle empty)_
+- [persistSave()](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/frontend/src/pages/ProfitManager.jsx#332-367): Replace `api.post` calls → batch Firestore writes
+
+#### [MODIFY] [frontend/src/pages/IncomeCalculator.jsx](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/frontend/src/pages/IncomeCalculator.jsx)
+- [fetchProductInfo()](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/frontend/src/pages/IncomeCalculator.jsx#23-40): Replace `api.get('/data/orgProductInfo')` → `fetchCollection('shopeeOrgProductInfo')`
+
+---
+
+### Vite Config & GitHub Pages
+
+#### [MODIFY] [frontend/vite.config.js](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/frontend/vite.config.js)
+- Remove the `proxy` block (no backend needed)
+- Add `base: '/ShopeeWeb/'` (or your GitHub Pages repo path — needs your GitHub repo name)
+
+#### [NEW] [frontend/.gitignore](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/frontend/.gitignore) additions
+Add entries to protect secrets:
+```
+.env
+.env.local
+firebase-import-script/shop-jj-app-firebase-adminsdk-fbsvc-887a2f804e.json
+firebase-import-script/node_modules
+```
+
+#### [NEW] `.github/workflows/deploy.yml`
+GitHub Actions workflow for auto-deploying to GitHub Pages on every push to `main`. Uses `npm run build` and pushes `dist/` to `gh-pages` branch. Requires you to set `VITE_*` environment variables as GitHub Secrets.
+
+---
+
+## Things I Need From You
+
+1. **Your Firebase Web Config** — Go to [Firebase Console](https://console.firebase.google.com) → `shop-jj-app` → Project Settings → Your Apps → Web app → Config. Copy the `firebaseConfig` object values.
+2. **Your GitHub repo name** — so I can set the correct `base` path in Vite (e.g., `CalculateShopeCostSummary` or `ShopeeWeb`).
+3. **The admin password** you want to use for the frontend login.
+
+---
+
+## Verification Plan
+
+### Manual Testing (after changes)
+
+1. **Run locally**:
+   ```
+   cd E:\Software\CalculateShopeCostSummary\ShopeeWeb\frontend
+   npm run dev
+   ```
+   - Open `http://localhost:3000` — Login page should appear
+   - Enter the password set in [.env](file:///E:/Software/CalculateShopeCostSummary/ShopeeWeb/backend/.env) → should redirect to Dashboard
+   - Navigate to **Income Calculator** → should load product list from Firestore
+   - Navigate to **Price & Profit Manager** → should load Shopee data from Firestore
+   - Navigate to **Shopee Stock** → should load stock data from Firestore
+   - Edit a stock item → click "Save Data" → verify in Firestore console that the document updated
+
+2. **Build test**:
+   ```
+   cd E:\Software\CalculateShopeCostSummary\ShopeeWeb\frontend
+   npm run build
+   ```
+   Should complete with no errors. Check `dist/` folder is generated.
+
+3. **GitHub Pages deployment** (after push):
+   - GitHub Actions workflow should trigger
+   - App accessible at `https://<your-username>.github.io/<repo-name>/`
+   - All data loads from Firestore
