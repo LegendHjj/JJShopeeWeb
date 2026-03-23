@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { fetchCollection, saveCollection, COLLECTIONS } from '../lib/firestoreApi';
-import { Save, AlertCircle, RefreshCw, Calculator, Plus, X, ChevronDown, ArrowUpDown, ChevronUp, FileJson, Download } from 'lucide-react';
+import { fetchCollection, saveCollection, deleteDocument, COLLECTIONS } from '../lib/firestoreApi';
+import { Save, AlertCircle, RefreshCw, Calculator, Plus, X, ChevronDown, ArrowUpDown, ChevronUp, FileJson, Download, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ─── Fixed Fees (hardcoded as specified) ─────────────────────────────────────
@@ -79,7 +79,7 @@ const DetailModal = ({ item, maxDiscPercent, onMaxDiscChange, onSave, onClose, o
   const readCls  = "w-full bg-[#0f0f0f] border border-white/5 rounded-lg px-3 py-2 text-sm font-mono";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onDoubleClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -88,6 +88,7 @@ const DetailModal = ({ item, maxDiscPercent, onMaxDiscChange, onSave, onClose, o
         transition={{ duration: 0.2 }}
         className="relative bg-[#141414] border border-white/10 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
+        onDoubleClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-white/5 sticky top-0 bg-[#141414] z-10">
@@ -311,9 +312,9 @@ const ProfitManager = () => {
         fetchCollection(cols.prodActPriceCalc),
         fetchCollection(cols.orgProductInfo),
       ]);
-      setProductCostData(costData || []);
+      setProductCostData((costData || []).map(item => ({ ...item, _localId: item._docId || Math.random().toString(36).substr(2, 9) })));
       setOriginalProductCostData(JSON.parse(JSON.stringify(costData || [])));
-      setOriginalData(orgData || []);
+      setOriginalData((orgData || []).map(item => ({ ...item, _localId: item._docId || Math.random().toString(36).substr(2, 9) })));
       setOriginalOriginalData(JSON.parse(JSON.stringify(orgData || [])));
     } catch (err) {
       showNotification('Error loading data from Firestore.', 'error');
@@ -331,15 +332,22 @@ const ProfitManager = () => {
   const handleModalSave = async (updatedItem) => {
     let newData;
     if (isNewItem) {
-      // Assign next seqNr
-      const maxSeq = productCostData.reduce((m, r) => Math.max(m, r.seqNr || 0), 0);
-      const newItem = { ...updatedItem, seqNr: maxSeq + 1 };
-      newData = [...productCostData, newItem];
+      newData = [updatedItem, ...productCostData];
     } else {
-      newData = productCostData.map(r => r.seqNr === updatedItem.seqNr ? updatedItem : r);
+      newData = productCostData.map(r => (r._localId === updatedItem._localId) ? updatedItem : r);
     }
-    setProductCostData(newData);
-    await persistSave(newData);
+    setProductCostData(newData); // Immediate update for UI
+    
+    // Save to cloud and get back the updated items (with new IDs)
+    const freshCostData = await persistSave(newData);
+    
+    // Merge only the newly saved items back into local state to keep IDs in sync
+    if (freshCostData && freshCostData.length > 0) {
+      setProductCostData(prev => prev.map(item => {
+        const saved = freshCostData.find(f => (item._docId && f._docId === item._docId) || (item._localId && f._localId === item._localId));
+        return saved ? { ...saved, _localId: item._localId } : item;
+      }));
+    }
     setSelectedItem(null);
   };
 
@@ -351,7 +359,8 @@ const ProfitManager = () => {
 
       // 1. Filter modified cost data
       const modifiedCost = costData.filter(item => {
-        const original = originalProductCostData.find(o => o.seqNr === item.seqNr);
+        if (!item._docId) return true; // Brand new
+        const original = originalProductCostData.find(o => o._docId === item._docId);
         if (!original) return true;
         return JSON.stringify(item) !== JSON.stringify(original);
       });
@@ -376,15 +385,17 @@ const ProfitManager = () => {
         };
 
         if (idx >= 0) {
-          // Check if this specific org entry actually changed
-          const orgOriginal = originalOriginalData.find(o => o.seqNr === costRow.seqNr);
+          // Sync based on SeqNr only for Org collection linkage
+          const orgOriginal = originalOriginalData.find(o => o._docId === costRow._docId);
           if (!orgOriginal || JSON.stringify(entry) !== JSON.stringify(orgOriginal)) {
             Object.assign(updatedOrg[idx], entry);
             itemsToUpdateInOrg.push(updatedOrg[idx]);
           }
-        } else {
-          updatedOrg.push(entry);
-          itemsToUpdateInOrg.push(entry);
+        } else if (costRow.productName) {
+          // Brand new product, add to org
+          const newEntry = { ...entry, _localId: Math.random().toString(36).substr(2, 9) };
+          updatedOrg.push(newEntry);
+          itemsToUpdateInOrg.push(newEntry);
         }
       });
 
@@ -403,14 +414,23 @@ const ProfitManager = () => {
         savePromises.push(saveCollection(cols.orgProductInfo, itemsToUpdateInOrg));
       }
 
-      await Promise.all(savePromises);
+      const results = await Promise.all(savePromises);
+      const savedItems = modifiedCost.length > 0 ? results[0] : [];
 
-      // 4. Update states to match saved data
-      setOriginalProductCostData(JSON.parse(JSON.stringify(costData)));
-      setOriginalData(updatedOrg);
-      setOriginalOriginalData(JSON.parse(JSON.stringify(updatedOrg)));
+      // 4. Update states to match saved data without full re-fetch
+      if (savedItems.length > 0) {
+         setOriginalProductCostData(prev => {
+           const next = [...prev];
+           savedItems.forEach(s => {
+             const i = next.findIndex(n => n._docId === s._docId);
+             if (i >= 0) next[i] = JSON.parse(JSON.stringify(s)); else next.push(JSON.parse(JSON.stringify(s)));
+           });
+           return next;
+         });
+      }
       
-      showNotification(`Saved ${modifiedCost.length} prices and ${itemsToUpdateInOrg.length} products! ✓`);
+      showNotification(`Saved ${modifiedCost.length} prices! ✓`);
+      return savedItems;
     } catch (err) {
       console.error(err);
       showNotification('Failed to save to Firestore. Check console.', 'error');
@@ -456,15 +476,43 @@ const ProfitManager = () => {
   };
 
   const handleAddNew = (cloneFrom = null) => {
-    const maxSeq = productCostData.reduce((m, r) => Math.max(m, r.seqNr || 0), 0);
-    const base = cloneFrom ? { ...cloneFrom } : { ...EMPTY_ITEM };
-    setSelectedItem({ ...base, seqNr: maxSeq + 1, productName: cloneFrom ? `${cloneFrom.productName} (copy)` : '', Notes: '' });
     setIsNewItem(true);
+    const maxSeq = productCostData.reduce((m, r) => Math.max(m, r.seqNr || 0), 0);
+    const base = cloneFrom ? JSON.parse(JSON.stringify(cloneFrom)) : { ...EMPTY_ITEM };
+    const { _docId, ...cleanBase } = base; 
+    setSelectedItem({ 
+      ...cleanBase, 
+      _localId: Math.random().toString(36).substr(2, 9),
+      seqNr: maxSeq + 1, 
+      productName: cloneFrom ? `${cloneFrom.productName} (copy)` : '', 
+      Notes: '' 
+    });
   };
 
   const handleCopyAsNew = (form) => {
     setSelectedItem(null);
     setTimeout(() => handleAddNew(form), 100);
+  };
+
+  const handleDeleteItem = async (item) => {
+    if (!window.confirm(`Permanently delete "${item.productName}" from both local and cloud?`)) return;
+    try {
+      setLoading(true);
+      const cols = source === 'tiktok' ? COLLECTIONS.tiktok : COLLECTIONS.shopee;
+      if (item._docId) await deleteDocument(cols.prodActPriceCalc, item._docId);
+      
+      setProductCostData(prev => prev.filter(s => {
+        if (item._docId && s._docId === item._docId) return false;
+        if (item._localId && s._localId === item._localId) return false;
+        return true;
+      }));
+      showNotification('Item deleted permanently.');
+    } catch (err) {
+      console.error(err);
+      showNotification('Delete failed.', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredData = productCostData.filter(item =>
@@ -609,6 +657,7 @@ const ProfitManager = () => {
                 <th className="px-3 py-3 min-w-[220px] cursor-pointer hover:bg-white/5 transition-colors group" onClick={() => handleSort('productName')}>
                   <div className="flex items-center">Product Name <SortIndicator columnKey="productName" /></div>
                 </th>
+                <th className="px-3 py-3 w-16 text-center">Actions</th>
                 <th className="px-3 py-3 w-20 text-right cursor-pointer hover:bg-white/5 transition-colors group" onClick={() => handleSort('orgPrice')}>
                   <div className="flex items-center justify-end">Org <SortIndicator columnKey="orgPrice" /></div>
                 </th>
@@ -641,12 +690,17 @@ const ProfitManager = () => {
             <tbody className="divide-y divide-white/5">
               {sortedData.map((item) => (
                 <tr
-                  key={item._docId || item.seqNr}
+                  key={item._localId || item._docId}
                   className="hover:bg-white/5 transition-colors cursor-pointer group"
                   onDoubleClick={() => { setSelectedItem(item); setIsNewItem(false); }}
                 >
                   <td className="px-3 py-2.5 text-center text-gray-500">{item.seqNr}</td>
                   <td className="px-3 py-2.5 font-medium text-gray-200 max-w-[280px] truncate" title={item.productName}>{item.productName || '—'}</td>
+                  <td className="px-3 py-2 text-center">
+                    <button onClick={(e) => { e.stopPropagation(); handleDeleteItem(item); }} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
                   <td className="px-3 py-2.5 text-right font-mono">{item.orgPrice || '—'}</td>
                   <td className="px-3 py-2.5 text-right font-mono">{item.sellingPrice || '—'}</td>
                   <td className={`px-3 py-2.5 text-right font-mono font-bold ${profitColor(item.sellingPriceProfit)}`}>{item.sellingPriceProfit !== undefined && item.sellingPriceProfit !== '' ? item.sellingPriceProfit : '—'}</td>

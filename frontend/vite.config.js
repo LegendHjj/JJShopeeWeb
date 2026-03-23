@@ -6,7 +6,7 @@ import react from '@vitejs/plugin-react'
 // then base = '/ShopeeWeb/'
 export default defineConfig({
   plugins: [react()],
-  base: '/JJShopeeWeb/',
+  base: './',
   server: {
     port: 3000,
     host: true,

@@ -98,33 +98,21 @@ export async function saveCollection(collectionName, itemsToSave) {
         // Create new
         const newDocRef = doc(colRef);
         batch.set(newDocRef, data);
+        // CRITICAL: Capture the new ID so it can be merged into cache below
+        item._docId = newDocRef.id;
       }
     }
     await batch.commit();
   }
 
-  // ─── Merge into Cache ───────────────────────────────────────────────────
-  // We want the local cache to stay complete, so we find and replace the 
-  // saved items in the existing cached list.
-  const fullCachedList = getLocalCache(collectionName) || [];
-  const updatedFullList = [...fullCachedList];
-  
-  itemsToSave.forEach(newItem => {
-    // If the item has a _docId, try to find it in the cache
-    const existingIdx = newItem._docId 
-      ? updatedFullList.findIndex(o => o._docId === newItem._docId)
-      : -1;
-
-    if (existingIdx >= 0) {
-      updatedFullList[existingIdx] = newItem;
-    } else {
-      // It's a brand new item (or not yet in cache)
-      updatedFullList.push(newItem);
-    }
-  });
-  
-  setLocalCache(collectionName, updatedFullList);
-  console.log(`[Cache] Updated local cache for ${collectionName} with ${itemsToSave.length} items`);
+  // ─── Force Fetch after save ─────────────────────────────────────────────
+  // Instead of complex merging, just re-fetch the whole thing to be 100% safe
+  const colRef2 = collection(db, collectionName);
+  const snapshot = await getDocs(colRef2);
+  const data2 = snapshot.docs.map((d) => ({ _docId: d.id, ...d.data() }));
+  setLocalCache(collectionName, data2);
+  console.log(`[Cache] Clean re-fetch completed for ${collectionName}`);
+  return data2;
 }
 
 /**
