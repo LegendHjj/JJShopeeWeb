@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard';
 import IncomeCalculator from './pages/IncomeCalculator';
 import ProfitManager from './pages/ProfitManager';
 import ShopeeStock from './pages/ShopeeStock';
+import SupportFAQ from './pages/SupportFAQ';
+import VariantChecker from './pages/VariantChecker';
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
             <Route path="calculator" element={<IncomeCalculator />} />
             <Route path="profit-manager" element={<ProfitManager />} />
             <Route path="shopee-stock" element={<ShopeeStock />} />
+            <Route path="support-faq" element={<SupportFAQ />} />
+            <Route path="variant-checker" element={<VariantChecker />} />
           </Route>
         </Routes>
       </Router>

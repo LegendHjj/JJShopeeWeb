@@ -41,7 +41,7 @@ const Login = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md p-8 bg-[#141414] border border-white/10 rounded-2xl shadow-2xl relative z-10 backdrop-blur-xl"
+        className="w-full max-w-md p-6 md:p-8 bg-[#141414] border border-white/10 rounded-2xl shadow-2xl relative z-10 backdrop-blur-xl mx-4 md:mx-0"
       >
         <div className="text-center mb-8">
           <div className="mx-auto w-16 h-16 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-blue-500/20">

@@ -50,7 +50,7 @@ const StockDetailModal = ({ item, onSave, onClose, onAddNew, isAddingNew }) => {
           </button>
         </div>
 
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <div className="space-y-4">
             <h3 className="text-sm font-semibold text-blue-400 border-b border-white/5 pb-2">Basic Info</h3>
             <div className="grid grid-cols-4 gap-3">
@@ -514,18 +514,18 @@ export default function ShopeeStock() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex justify-between items-center print:hidden">
-        <div><h1 className="text-3xl font-bold text-white tracking-tight">Shopee Stock</h1><p className="text-gray-400 mt-1">Manage and calculate stock requirements</p></div>
-        <div className="flex space-x-2 bg-[#1a1a1a] p-1 rounded-xl border border-white/5">
-          <button onClick={() => setActiveTab('calculate')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'calculate' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>Calculate</button>
-          <button onClick={() => setActiveTab('manage')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'manage' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}>Manage</button>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 print:hidden">
+        <div><h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Shopee Stock</h1><p className="text-gray-400 mt-1 text-sm">Manage and calculate stock requirements</p></div>
+        <div className="flex space-x-2 bg-[#1a1a1a] p-1 rounded-xl border border-white/5 w-full md:w-auto">
+          <button onClick={() => setActiveTab('calculate')} className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'calculate' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>Calculate</button>
+          <button onClick={() => setActiveTab('manage')} className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'manage' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}>Manage</button>
         </div>
       </div>
       {activeTab === 'calculate' && (
         <div className="space-y-6">
-          <div className="bg-[#141414] border border-white/5 rounded-2xl p-6 print:hidden">
-            <div className="flex items-center space-x-4">
-              <label className="flex items-center space-x-2 px-6 py-3 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl cursor-pointer hover:bg-blue-600/30">
+          <div className="bg-[#141414] border border-white/5 rounded-2xl p-4 md:p-6 print:hidden">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:space-x-4">
+              <label className="flex items-center justify-center space-x-2 px-6 py-3 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl cursor-pointer hover:bg-blue-600/30">
                 <Upload size={20} /><span>Upload Excel</span><input type="file" className="hidden" accept=".xlsx, .xls" onChange={handleFileUpload} />
               </label>
               {uploadedFileName && (
@@ -534,7 +534,7 @@ export default function ShopeeStock() {
                   <span className="text-gray-500 text-[10px]">{excelData.length} rows loaded</span>
                 </div>
               )}
-              <button onClick={calculateStock} disabled={excelData.length === 0} className="px-6 py-3 bg-blue-600 text-white rounded-xl disabled:opacity-50">Calculate Stock</button>
+              <button onClick={calculateStock} disabled={excelData.length === 0} className="px-6 py-3 bg-blue-600 text-white rounded-xl disabled:opacity-50 w-full md:w-auto">Calculate Stock</button>
             </div>
           </div>
           {(hookLoopWhiteList.length > 0 || otherItemList.length > 0) && (
@@ -581,14 +581,16 @@ export default function ShopeeStock() {
         </div>
       )}
       {activeTab === 'manage' && (
-        <div className="bg-[#141414] border border-white/5 rounded-2xl p-6 space-y-4">
-          <div className="flex gap-3">
-            <input type="text" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="flex-1 bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-blue-500" />
-            <button onClick={handleAddNew} className="px-4 py-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl hover:bg-blue-600/30 transition-all font-medium">Add Item</button>
-            <button onClick={handleSaveStock} disabled={loading} className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold flex items-center gap-2"> {loading ? <RefreshCw className="animate-spin" size={18}/> : <Check size={18}/>} Save to Cloud</button>
+        <div className="bg-[#141414] border border-white/5 rounded-2xl p-4 md:p-6 space-y-4">
+          <div className="flex flex-col md:flex-row gap-3">
+            <input type="text" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="flex-1 bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-2.5 text-white outline-none focus:border-blue-500" />
+            <div className="flex gap-2 md:gap-3">
+              <button onClick={handleAddNew} className="flex-1 md:flex-none px-4 py-2.5 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl hover:bg-blue-600/30 transition-all font-medium text-sm">Add Item</button>
+              <button onClick={handleSaveStock} disabled={loading} className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm"> {loading ? <RefreshCw className="animate-spin" size={18}/> : <Check size={18}/>} Save to Cloud</button>
+            </div>
           </div>
-          <div className="overflow-auto border border-white/5 rounded-xl bg-black/20 max-h-[600px]">
-            <table className="w-full text-left text-sm">
+          <div className="overflow-auto border border-white/5 rounded-xl bg-black/20" style={{ maxHeight: 'min(600px, 60vh)' }}>
+            <table className="w-full text-left text-sm min-w-[800px]">
               <thead className="bg-[#1a1a1a] sticky top-0 font-bold text-gray-500 text-[10px] uppercase">
                 <tr>
                   <th className="p-3 cursor-pointer w-12 text-center" onClick={() => handleSort('seqNr')}>No <SortIndicator columnKey="seqNr" /></th>

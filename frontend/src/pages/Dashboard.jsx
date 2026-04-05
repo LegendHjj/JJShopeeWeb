@@ -212,28 +212,28 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-8 min-h-screen pb-20">
+    <div className="space-y-5 md:space-y-8 min-h-screen pb-20">
       {/* ── Header Area ────────────────────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
         <div>
-          <h1 className="text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl md:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
             Memo Board
             <span className="text-xs font-normal px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-gray-500">
               {notes.length} saved
             </span>
           </h1>
-          <p className="text-gray-400 mt-2 text-lg">Your workspace for quick ideas, reminders, and cloud-synced notes.</p>
+          <p className="text-gray-400 mt-1 md:mt-2 text-sm md:text-lg">Your workspace for quick ideas, reminders, and cloud-synced notes.</p>
         </div>
         <button 
           onClick={() => { setEditingNote(null); setIsModalOpen(true); }}
-          className="flex items-center gap-2 px-8 py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-500 shadow-xl shadow-blue-500/20 active:scale-95 transition-all"
+          className="flex items-center justify-center gap-2 w-full md:w-auto px-8 py-3 md:py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-500 shadow-xl shadow-blue-500/20 active:scale-95 transition-all"
         >
           <Plus size={24} /> New Memo
         </button>
       </div>
 
       {/* ── Toolbar ────────────────────────────────────────────── */}
-      <div className="flex flex-col lg:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-3 md:gap-4">
         <div className="relative flex-1 group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-500 transition-colors" size={20} />
           <input 
@@ -241,15 +241,15 @@ const Dashboard = () => {
             placeholder="Search keywords, titles, or content..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full bg-[#141414] border border-white/5 rounded-2xl pl-12 pr-4 py-4 text-white outline-none focus:border-blue-500/30 transition-all shadow-inner"
+            className="w-full bg-[#141414] border border-white/5 rounded-2xl pl-12 pr-4 py-3 md:py-4 text-white outline-none focus:border-blue-500/30 transition-all shadow-inner"
           />
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex gap-2 md:gap-3 overflow-x-auto pb-2 scrollbar-hide">
           {['All', ...CATEGORIES].map(cat => (
             <button
               key={cat}
               onClick={() => setFilterCategory(cat)}
-              className={`px-6 py-4 rounded-2xl font-semibold whitespace-nowrap transition-all border ${
+              className={`px-4 md:px-6 py-2.5 md:py-4 rounded-2xl text-sm md:text-base font-semibold whitespace-nowrap transition-all border ${
                 filterCategory === cat 
                   ? 'bg-white text-black border-white' 
                   : 'bg-[#141414] text-gray-400 border-white/5 hover:border-white/20'
@@ -260,7 +260,7 @@ const Dashboard = () => {
           ))}
           <button 
             onClick={() => loadNotes(true)}
-            className="p-4 bg-[#141414] border border-white/5 rounded-2xl text-gray-400 hover:text-white hover:border-blue-500/30 transition-all"
+            className="p-2.5 md:p-4 bg-[#141414] border border-white/5 rounded-2xl text-gray-400 hover:text-white hover:border-blue-500/30 transition-all shrink-0"
             title="Sync from Cloud"
           >
             <RefreshCw className={loading ? 'animate-spin' : ''} size={20} />

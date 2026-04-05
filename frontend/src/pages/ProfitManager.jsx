@@ -101,7 +101,7 @@ const DetailModal = ({ item, maxDiscPercent, onMaxDiscChange, onSave, onClose, o
           </button>
         </div>
 
-        <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="p-4 md:p-5 grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
           {/* ── Left: Core fields ─────────────────────────────── */}
           <div className="md:col-span-2 space-y-4">
             {/* Row 1: Seq + Name + Per10 */}
@@ -562,16 +562,16 @@ const ProfitManager = () => {
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Price &amp; Profit Manager</h1>
-          <p className="text-gray-400 mt-1 text-sm">Double-click any row to view and edit full product details</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Price &amp; Profit Manager</h1>
+          <p className="text-gray-400 mt-1 text-xs md:text-sm">Double-click any row to view and edit full product details</p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 md:gap-3 flex-wrap">
           {/* Source switcher */}
-          <div className="relative">
+          <div className="relative flex-1 md:flex-none">
             <select
               value={source}
               onChange={e => setSource(e.target.value)}
-              className="appearance-none bg-[#1a1a1a] border border-white/10 text-white rounded-xl pl-4 pr-10 py-2.5 text-sm font-medium outline-none focus:border-blue-500 cursor-pointer"
+              className="appearance-none w-full bg-[#1a1a1a] border border-white/10 text-white rounded-xl pl-4 pr-10 py-2.5 text-sm font-medium outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="shopee">🟠 Shopee Data</option>
               <option value="tiktok">⚫ TikTok Data</option>
@@ -581,16 +581,16 @@ const ProfitManager = () => {
 
           <button
             onClick={handleExportJson}
-            className="flex items-center gap-2 px-4 py-2.5 bg-amber-600/20 text-amber-500 hover:bg-amber-600/30 border border-amber-500/30 rounded-xl transition-all text-sm font-semibold"
+            className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-amber-600/20 text-amber-500 hover:bg-amber-600/30 border border-amber-500/30 rounded-xl transition-all text-sm font-semibold"
             title="Export to JSON (using local cache)"
           >
-            <FileJson size={16} />Export JSON
+            <FileJson size={16} /><span className="hidden md:inline">Export</span> JSON
           </button>
 
 
           <button
             onClick={() => handleAddNew()}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl transition-all text-sm font-semibold"
+            className="flex items-center gap-2 px-3 md:px-4 py-2.5 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30 rounded-xl transition-all text-sm font-semibold"
           >
             <Plus size={16} />Add Item
           </button>
@@ -598,7 +598,7 @@ const ProfitManager = () => {
           <button
             onClick={handleSaveAll}
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl shadow-lg transition-all font-semibold text-sm"
+            className="flex items-center gap-2 px-4 md:px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl shadow-lg transition-all font-semibold text-sm flex-1 md:flex-none justify-center"
           >
             {saving ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
             {saving ? 'Saving...' : 'Save All'}
@@ -626,16 +626,20 @@ const ProfitManager = () => {
       </AnimatePresence>
 
     {/* ── Fee Summary Bar ── */}
-    <div className="flex items-center gap-6 px-5 py-3 bg-[#141414] border border-white/5 rounded-xl text-xs text-gray-400">
+    <div className="hidden md:flex items-center gap-6 px-5 py-3 bg-[#141414] border border-white/5 rounded-xl text-xs text-gray-400">
       <span className="font-semibold text-gray-300">Fixed Fees Summary:</span>
       <span>Commission <span className="text-orange-400 font-mono font-bold">8.62%</span></span>
       <span>Service <span className="text-orange-400 font-mono font-bold">9.96%</span></span>
       <span>Transaction <span className="text-orange-400 font-mono font-bold">6.42%</span></span>
       <span className="ml-auto">Combined Total Fees <span className="text-red-400 font-mono font-bold">{(TOTAL_FEES*100).toFixed(2)}%</span></span>
     </div>
+    {/* Mobile fee bar */}
+    <div className="flex md:hidden flex-wrap gap-2 px-3 py-2.5 bg-[#141414] border border-white/5 rounded-xl text-xs text-gray-400">
+      <span className="w-full font-semibold text-gray-300 text-[10px]">Fees: Comm 8.62% | Svc 9.96% | Txn 6.42% | Total <span className="text-red-400 font-mono font-bold">{(TOTAL_FEES*100).toFixed(2)}%</span></span>
+    </div>
 
       {/* ── Data Grid ─────────────────────────────────────── */}
-      <div className="bg-[#141414] border border-white/5 rounded-2xl overflow-hidden flex flex-col" style={{ height: '580px' }}>
+      <div className="bg-[#141414] border border-white/5 rounded-2xl overflow-hidden flex flex-col" style={{ height: 'min(580px, 65vh)' }}>
         <div className="p-3 border-b border-white/5 bg-white/5 flex gap-3 items-center shrink-0">
           <input
             type="text"
@@ -648,7 +652,7 @@ const ProfitManager = () => {
         </div>
 
         <div className="flex-1 overflow-auto">
-          <table className="w-full text-left text-xs text-gray-400">
+          <table className="w-full text-left text-xs text-gray-400 min-w-[900px]">
             <thead className="text-gray-500 uppercase bg-[#0a0a0a] sticky top-0 z-10 shadow-md text-[10px]">
               <tr>
                 <th className="px-3 py-3 w-10 text-center cursor-pointer hover:bg-white/5 transition-colors group" onClick={() => handleSort('seqNr')}>

@@ -195,18 +195,18 @@ const IncomeCalculator = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Income Calculator</h1>
-          <p className="text-gray-400 mt-1">Calculate your total net profit from Excel sales data</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Income Calculator</h1>
+          <p className="text-gray-400 mt-1 text-sm md:text-base">Calculate your total net profit from Excel sales data</p>
         </div>
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg cursor-pointer transition-all">
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+          <label className="flex items-center gap-2 px-4 py-2.5 md:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg cursor-pointer transition-all flex-1 md:flex-none justify-center">
             <Upload size={16} />
             <span className="font-semibold text-sm">Upload Excel</span>
             <input type="file" accept=".xls,.xlsx" className="hidden" onChange={handleFileUpload} />
           </label>
           <button
             onClick={handleResetQty}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 rounded-xl transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 md:py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 rounded-xl transition-all"
           >
             <Trash2 size={16} />
             <span className="text-sm font-medium">Reset</span>
@@ -214,7 +214,7 @@ const IncomeCalculator = () => {
           <button
             onClick={handleCalculate}
             disabled={calculating}
-            className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl font-bold shadow-lg transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 md:py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl font-bold shadow-lg transition-all flex-1 md:flex-none justify-center"
           >
             {calculating ? <RefreshCw className="animate-spin w-4 h-4" /> : <Calculator className="w-4 h-4" />}
             <span>{calculating ? 'Calculating...' : 'Calculate Profit'}</span>
@@ -238,13 +238,13 @@ const IncomeCalculator = () => {
       </AnimatePresence>
 
       {/* Product Quantities Table */}
-      <div className="bg-[#141414] border border-white/5 rounded-2xl overflow-hidden flex flex-col" style={{ height: '450px' }}>
+      <div className="bg-[#141414] border border-white/5 rounded-2xl overflow-hidden flex flex-col" style={{ height: 'min(450px, 60vh)' }}>
         <div className="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center shrink-0">
           <h3 className="font-semibold text-white">Product Quantities</h3>
           <p className="text-xs text-gray-400">{productInfo.length} items loaded</p>
         </div>
-        <div className="flex-1 overflow-auto">
-          <table className="w-full text-left text-sm text-gray-400">
+        <div className="flex-1 overflow-auto overflow-x-auto">
+          <table className="w-full text-left text-sm text-gray-400 min-w-[500px]">
             <thead className="text-[10px] text-gray-500 uppercase bg-[#0a0a0a] sticky top-0 z-10">
               <tr>
                 <th className="px-4 py-3 w-16 cursor-pointer hover:bg-white/5 transition-colors group" onClick={() => handleSort('seqNr')}>

@@ -26,6 +26,7 @@ export const COLLECTIONS = {
     prodStockCalc:    'tiktokProdStockCalcTikTok',
   },
   notes: 'ShopeeWebNotes',
+  supportFAQ: 'shopeeSupportFAQ',
 };
 
 // ─── Cache Helpers ───────────────────────────────────────────────────────────
