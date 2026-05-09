@@ -39,8 +39,8 @@ const StockDetailModal = ({ item, onSave, onClose, onAddNew, isAddingNew }) => {
         className="relative bg-[#141414] border border-white/10 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-5 border-b border-white/5 sticky top-0 bg-[#141414] z-10" 
-             onDoubleClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-white/5 sticky top-0 bg-[#141414] z-10"
+          onDoubleClick={e => e.stopPropagation()}>
           <div>
             <h2 className="text-lg font-bold text-white">📦 Stock Item Detail</h2>
             <p className="text-xs text-gray-400 mt-0.5">#{form.seqNr} — {form.productName || 'Unnamed Product'}</p>
@@ -63,7 +63,7 @@ const StockDetailModal = ({ item, onSave, onClose, onAddNew, isAddingNew }) => {
                 <input className={inputCls} type="text" value={form.productName || ''} onChange={e => set('productName', e.target.value)} />
               </div>
             </div>
-            
+
             <div>
               <label className={labelCls}>Customize Name (Display)</label>
               <input className={inputCls} type="text" value={form.CustomizeName || ''} onChange={e => set('CustomizeName', e.target.value)} />
@@ -140,7 +140,7 @@ const StockDetailModal = ({ item, onSave, onClose, onAddNew, isAddingNew }) => {
 
         <div className="p-5 border-t border-white/5 flex gap-3 justify-end bg-[#0f0f0f]">
           {!isAddingNew && (
-            <button 
+            <button
               onClick={() => onAddNew(form)}
               className="mr-auto px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-400 rounded-lg font-medium text-sm flex items-center gap-2 transition-all"
             >
@@ -149,10 +149,107 @@ const StockDetailModal = ({ item, onSave, onClose, onAddNew, isAddingNew }) => {
             </button>
           )}
           <button onClick={onClose} className="px-5 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium">Cancel</button>
-          
+
           <button onClick={handleSave} disabled={saving} className="px-8 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-sm flex items-center gap-2 transition-all">
             {saving ? <RefreshCw className="animate-spin" size={16} /> : <Check size={16} />}
             {isAddingNew ? 'Add Item' : 'Save changes'}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// ─── Bulk Add Details Modal ──────────────────────────────────────────────────
+const BulkAddModal = ({ items, onSave, onClose }) => {
+  const [draftItems, setDraftItems] = useState(items);
+  const [saving, setSaving] = useState(false);
+
+  const handleUpdate = (index, field, value) => {
+    const newItems = [...draftItems];
+    newItems[index][field] = value;
+    setDraftItems(newItems);
+  };
+
+  const handleRemove = (index) => {
+    const newItems = draftItems.filter((_, i) => i !== index);
+    setDraftItems(newItems);
+  };
+
+  const handleConfirm = async () => {
+    setSaving(true);
+    await onSave(draftItems);
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onDoubleClick={onClose} />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="relative bg-[#141414] border border-white/10 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col"
+      >
+        <div className="flex items-center justify-between p-5 border-b border-white/5 bg-[#141414] rounded-t-2xl z-10 shrink-0">
+          <div>
+            <h2 className="text-lg font-bold text-white">📑 Review Bulk Add Items</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Found {draftItems.length} new items to add. Edit details below before confirming.</p>
+          </div>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-white transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-auto p-4 bg-black/20">
+          <table className="w-full text-left text-sm min-w-[800px]">
+            <thead className="bg-[#1a1a1a] sticky top-0 font-bold text-gray-500 text-[10px] uppercase z-10 shadow-md">
+              <tr>
+                <th className="p-2 w-12 text-center border-b border-white/5">No</th>
+                <th className="p-2 w-[35%] border-b border-white/5">Product Name</th>
+                <th className="p-2 w-[25%] border-b border-white/5">Customize Name</th>
+                <th className="p-2 border-b border-white/5">Variant ID</th>
+                <th className="p-2 border-b border-white/5">SKU Code</th>
+                <th className="p-2 w-16 text-center border-b border-white/5">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {draftItems.map((item, idx) => (
+                <tr key={idx} className="hover:bg-white/[0.04]">
+                  <td className="p-2 text-center text-xs text-gray-400">{item.seqNr}</td>
+                  <td className="p-2">
+                    <input className="w-full bg-[#1a1a1a] border border-white/10 focus:border-blue-500 outline-none rounded px-2 py-1.5 text-xs text-white placeholder-gray-600" placeholder="Product Name" value={item.productName || ''} onChange={e => handleUpdate(idx, 'productName', e.target.value)} />
+                  </td>
+                  <td className="p-2">
+                    <input className="w-full bg-[#1a1a1a] border border-white/10 focus:border-blue-500 outline-none rounded px-2 py-1.5 text-xs text-blue-400 placeholder-gray-600" placeholder="Customize Name" value={item.CustomizeName || ''} onChange={e => handleUpdate(idx, 'CustomizeName', e.target.value)} />
+                  </td>
+                  <td className="p-2">
+                    <input className="w-full bg-[#1a1a1a] border border-white/10 focus:border-blue-500 outline-none rounded px-2 py-1.5 text-xs text-gray-300 font-mono placeholder-gray-600" placeholder="Variant ID" value={item.VariantianID || ''} onChange={e => handleUpdate(idx, 'VariantianID', e.target.value)} />
+                  </td>
+                  <td className="p-2">
+                    <input className="w-full bg-[#1a1a1a] border border-white/10 focus:border-blue-500 outline-none rounded px-2 py-1.5 text-xs text-emerald-400 font-mono placeholder-gray-600" placeholder="SKU Code" value={item.SKUIDCode || ''} onChange={e => handleUpdate(idx, 'SKUIDCode', e.target.value)} />
+                  </td>
+                  <td className="p-2 text-center">
+                    <button onClick={() => handleRemove(idx)} className="p-1.5 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors border border-red-500/20" title="Remove">
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {draftItems.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="p-8 text-center text-gray-500">No items remaining. You can close this modal.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="p-5 border-t border-white/5 flex gap-3 justify-end shrink-0 bg-[#0f0f0f] rounded-b-2xl">
+          <button onClick={onClose} className="px-5 py-2 text-gray-400 hover:text-white transition-colors text-sm font-medium">Cancel</button>
+          <button onClick={handleConfirm} disabled={saving || draftItems.length === 0} className="px-8 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 text-white rounded-lg font-bold text-sm flex items-center gap-2 transition-all disabled:opacity-50">
+            {saving ? <RefreshCw className="animate-spin" size={16} /> : <Check size={16} />}
+            Confirm & Save to Cloud
           </button>
         </div>
       </motion.div>
@@ -165,7 +262,7 @@ export default function ShopeeStock() {
   const [stockData, setStockData] = useState([]);
   const [originalStockData, setOriginalStockData] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   const [excelData, setExcelData] = useState([]);
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [printDate, setPrintDate] = useState("");
@@ -183,6 +280,11 @@ export default function ShopeeStock() {
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
+
+  const [draftBulkItems, setDraftBulkItems] = useState([]);
+  const [isBulkAdding, setIsBulkAdding] = useState(false);
+  const bulkFileInputRef = React.useRef(null);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'seqNr', direction: 'asc' });
 
@@ -196,8 +298,8 @@ export default function ShopeeStock() {
 
   const SortIndicator = ({ columnKey }) => {
     if (sortConfig.key !== columnKey) return <ArrowUpDown size={14} className="ml-1 opacity-10 group-hover:opacity-50 transition-opacity" />;
-    return sortConfig.direction === 'asc' 
-      ? <ChevronUp size={14} className="ml-1 text-blue-400" /> 
+    return sortConfig.direction === 'asc'
+      ? <ChevronUp size={14} className="ml-1 text-blue-400" />
       : <ChevronDown size={14} className="ml-1 text-blue-400" />;
   };
 
@@ -205,9 +307,9 @@ export default function ShopeeStock() {
     try {
       setLoading(true);
       const data = await fetchCollection(COLLECTIONS.shopee.prodStockCalc);
-      setStockData(data.map(item => ({ 
-        ...item, 
-        _localId: item._docId || Math.random().toString(36).substr(2, 9) 
+      setStockData(data.map(item => ({
+        ...item,
+        _localId: item._docId || Math.random().toString(36).substr(2, 9)
       })));
       setOriginalStockData(JSON.parse(JSON.stringify(data)));
     } catch (error) {
@@ -241,33 +343,33 @@ export default function ShopeeStock() {
     for (let i = 1; i <= 24; i++) {
       slots.push({ HookLoopCategory: `HOOKLOOP${i}MBLACK`, DisplayName: `${i}M H&L`, quantity: 0, totalOrderID: '' });
       slots.push({ HookLoopCategory: `HOOKLOOP${i}MWHITE`, DisplayName: `${i}M H&L`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `HOOK${i}MBLACK`,     DisplayName: `${i}M HOOK`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `HOOK${i}MWHITE`,     DisplayName: `${i}M HOOK`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `LOOP${i}MBLACK`,     DisplayName: `${i}M LOOP`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `LOOP${i}MWHITE`,     DisplayName: `${i}M LOOP`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `HOOK${i}MBLACK`, DisplayName: `${i}M HOOK`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `HOOK${i}MWHITE`, DisplayName: `${i}M HOOK`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `LOOP${i}MBLACK`, DisplayName: `${i}M LOOP`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `LOOP${i}MWHITE`, DisplayName: `${i}M LOOP`, quantity: 0, totalOrderID: '' });
       slots.push({ HookLoopCategory: `16MMHOOKLOOPNOGLUE${i}MBLACK`, DisplayName: `${i}M 16MM H&L`, quantity: 0, totalOrderID: '' });
       slots.push({ HookLoopCategory: `16MMHOOKLOOPNOGLUE${i}MWHITE`, DisplayName: `${i}M 16MM H&L`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `16MMHOOKNOGLUE${i}MBLACK`,     DisplayName: `${i}M 16MM HOOK`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `16MMHOOKNOGLUE${i}MWHITE`,     DisplayName: `${i}M 16MM HOOK`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `16MMLOOPNOGLUE${i}MBLACK`,     DisplayName: `${i}M 16MM LOOP`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `16MMLOOPNOGLUE${i}MWHITE`,     DisplayName: `${i}M 16MM LOOP`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `16MMHOOKNOGLUE${i}MBLACK`, DisplayName: `${i}M 16MM HOOK`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `16MMHOOKNOGLUE${i}MWHITE`, DisplayName: `${i}M 16MM HOOK`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `16MMLOOPNOGLUE${i}MBLACK`, DisplayName: `${i}M 16MM LOOP`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `16MMLOOPNOGLUE${i}MWHITE`, DisplayName: `${i}M 16MM LOOP`, quantity: 0, totalOrderID: '' });
       slots.push({ HookLoopCategory: `25MMHOOKLOOPNOGLUE${i}MBLACK`, DisplayName: `${i}M 25MM H&L`, quantity: 0, totalOrderID: '' });
       slots.push({ HookLoopCategory: `25MMHOOKLOOPNOGLUE${i}MWHITE`, DisplayName: `${i}M 25MM H&L`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `25MMHOOKNOGLUE${i}MBLACK`,     DisplayName: `${i}M 25MM HOOK`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `25MMHOOKNOGLUE${i}MWHITE`,     DisplayName: `${i}M 25MM HOOK`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `25MMLOOPNOGLUE${i}MBLACK`,     DisplayName: `${i}M 25MM LOOP`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `25MMLOOPNOGLUE${i}MWHITE`,     DisplayName: `${i}M 25MM LOOP`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `25MMHOOKNOGLUE${i}MBLACK`, DisplayName: `${i}M 25MM HOOK`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `25MMHOOKNOGLUE${i}MWHITE`, DisplayName: `${i}M 25MM HOOK`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `25MMLOOPNOGLUE${i}MBLACK`, DisplayName: `${i}M 25MM LOOP`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `25MMLOOPNOGLUE${i}MWHITE`, DisplayName: `${i}M 25MM LOOP`, quantity: 0, totalOrderID: '' });
       slots.push({ HookLoopCategory: `38MMHOOKLOOPNOGLUE${i}MBLACK`, DisplayName: `${i}M 38MM H&L`, quantity: 0, totalOrderID: '' });
       slots.push({ HookLoopCategory: `38MMHOOKLOOPNOGLUE${i}MWHITE`, DisplayName: `${i}M 38MM H&L`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `38MMHOOKNOGLUE${i}MBLACK`,     DisplayName: `${i}M 38MM HOOK`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `38MMHOOKNOGLUE${i}MWHITE`,     DisplayName: `${i}M 38MM HOOK`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `38MMLOOPNOGLUE${i}MBLACK`,     DisplayName: `${i}M 38MM LOOP`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `38MMLOOPNOGLUE${i}MWHITE`,     DisplayName: `${i}M 38MM LOOP`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `38MMHOOKNOGLUE${i}MBLACK`, DisplayName: `${i}M 38MM HOOK`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `38MMHOOKNOGLUE${i}MWHITE`, DisplayName: `${i}M 38MM HOOK`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `38MMLOOPNOGLUE${i}MBLACK`, DisplayName: `${i}M 38MM LOOP`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `38MMLOOPNOGLUE${i}MWHITE`, DisplayName: `${i}M 38MM LOOP`, quantity: 0, totalOrderID: '' });
       slots.push({ HookLoopCategory: `NONCUTSTICK${i}MBIEGE`, DisplayName: `${i}M`, quantity: 0, totalOrderID: '' });
       slots.push({ HookLoopCategory: `NONCUTSTICK${i}MWHITE`, DisplayName: `${i}M`, quantity: 0, totalOrderID: '' });
       slots.push({ HookLoopCategory: `NONCUTSTICK${i}MBLACK`, DisplayName: `${i}M`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `NONCUTSTICK${i}MBLUE`,  DisplayName: `${i}M`, quantity: 0, totalOrderID: '' });
-      slots.push({ HookLoopCategory: `NONCUTSTICK${i}MGREY`,  DisplayName: `${i}M`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `NONCUTSTICK${i}MBLUE`, DisplayName: `${i}M`, quantity: 0, totalOrderID: '' });
+      slots.push({ HookLoopCategory: `NONCUTSTICK${i}MGREY`, DisplayName: `${i}M`, quantity: 0, totalOrderID: '' });
     }
     return slots;
   };
@@ -323,7 +425,13 @@ export default function ShopeeStock() {
       const skuCode = (row["SKU Reference No."] || "").toString().trim();
       const rawQuantity = parseInt(row["Quantity"]) || 1;
       if (rowOrderId !== currentOrderId) { itemList = []; currentOrderId = rowOrderId; }
-      let prdInfo = stockData.find(p => (p.SKUIDCode || "").includes(skuCode));
+      let prdInfo = null;
+      if (skuCode) {
+        prdInfo = stockData.find(p => {
+          const dbSkus = (p.SKUIDCode || "").split(',').map(s => s.trim().toLowerCase());
+          return dbSkus.includes(skuCode.toLowerCase());
+        });
+      }
       if (!prdInfo) prdInfo = stockData.find(p => (p.VariantianName || "").includes((row["Variation Name"] || "") + (row["Product Name"] || "").substring(0, 20)));
       let SameCategoryCountID = prdInfo?.SameCategoryCountID || "UNKNOWN";
       let jsonQuantity = prdInfo?.SameCategoryCountQuantity || 1;
@@ -429,6 +537,87 @@ export default function ShopeeStock() {
       setStockData(prev => prev.filter(s => (item._docId && s._docId === item._docId) ? false : (item._localId && s._localId === item._localId) ? false : true));
       setOriginalStockData(prev => prev.filter(s => s._docId !== item._docId));
     } catch (error) { alert("Delete failed."); } finally { setLoading(false); }
+  };
+
+  const handleBulkUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const bstr = evt.target.result;
+      const wb = XLSX.read(bstr, { type: 'binary' });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+      let newDrafts = [];
+      let maxSeq = stockData.length > 0 ? Math.max(...stockData.map(s => s.seqNr || 0)) : 0;
+
+      for (let i = 6; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || !row.length) continue;
+
+        let sku = row[5];
+        if (sku == null || sku.toString().trim() === '' || sku.toString().trim() === '0') {
+          sku = row[4];
+        }
+        if (sku == null || sku.toString().trim() === '' || sku.toString().trim() === '0') continue;
+
+        const exists = stockData.some(item => (item.SKUIDCode || '').trim().toLowerCase() === sku.toString().trim().toLowerCase());
+        if (!exists) {
+          maxSeq++;
+          const rawProductName = (row[1] || '').toString().trim();
+          const rawVariantName = (row[3] || '').toString().trim();
+          
+          let nameR = (row[17] || '').toString().trim();
+          if (!nameR) {
+            nameR = rawVariantName ? `${rawVariantName} | ${rawProductName}` : rawProductName;
+          }
+          const productName = nameR;
+
+          newDrafts.push({
+            _localId: 'draft_' + Math.random().toString(36).substr(2, 9),
+            seqNr: maxSeq,
+            productName: productName,
+            CustomizeName: nameR,
+            VariantianID: (row[2] || '').toString(),
+            SKUIDCode: sku.toString().trim(),
+            CategorySeqNr: 0,
+            CurrentStock: 0,
+            SafetyStock: 0,
+            Remark: ''
+          });
+        }
+      }
+
+      if (newDrafts.length > 0) {
+        setDraftBulkItems(newDrafts);
+        setIsBulkAdding(true);
+      } else {
+        alert("No new SKUs found to add!");
+      }
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = '';
+  };
+
+  const handleConfirmBulkAdd = async (itemsToAdd) => {
+    try {
+      if (itemsToAdd.length === 0) return setIsBulkAdding(false);
+
+      const savedItems = await saveCollection(COLLECTIONS.shopee.prodStockCalc, itemsToAdd);
+
+      if (savedItems && savedItems.length > 0) {
+        setStockData(prev => [...savedItems, ...prev]);
+        setOriginalStockData(prev => [...prev, ...JSON.parse(JSON.stringify(savedItems))]);
+        alert(`Successfully added and saved ${savedItems.length} new items!`);
+      }
+      setIsBulkAdding(false);
+      setDraftBulkItems([]);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to save bulk items.");
+    }
   };
 
   const handleExportJson = () => {
@@ -585,8 +774,13 @@ export default function ShopeeStock() {
           <div className="flex flex-col md:flex-row gap-3">
             <input type="text" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="flex-1 bg-[#0a0a0a] border border-white/10 rounded-xl px-4 py-2.5 text-white outline-none focus:border-blue-500" />
             <div className="flex gap-2 md:gap-3">
+              <input type="file" className="hidden" accept=".xlsx, .xls, .csv" ref={bulkFileInputRef} onChange={handleBulkUpload} />
+              <button onClick={() => bulkFileInputRef.current?.click()} title="Import: mass_update_sales_info.xlsx or .csv" className="flex-1 md:flex-none px-4 py-2.5 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-xl hover:bg-indigo-600/30 transition-all font-medium text-sm flex items-center justify-center gap-2 group relative">
+                <FileJson size={16} /> Bulk Add Items
+                <Info size={14} className="opacity-70 group-hover:opacity-100" />
+              </button>
               <button onClick={handleAddNew} className="flex-1 md:flex-none px-4 py-2.5 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl hover:bg-blue-600/30 transition-all font-medium text-sm">Add Item</button>
-              <button onClick={handleSaveStock} disabled={loading} className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm"> {loading ? <RefreshCw className="animate-spin" size={18}/> : <Check size={18}/>} Save to Cloud</button>
+              <button onClick={handleSaveStock} disabled={loading} className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm"> {loading ? <RefreshCw className="animate-spin" size={18} /> : <Check size={18} />} Save to Cloud</button>
             </div>
           </div>
           <div className="overflow-auto border border-white/5 rounded-xl bg-black/20" style={{ maxHeight: 'min(600px, 60vh)' }}>
@@ -618,8 +812,8 @@ export default function ShopeeStock() {
                     <td className="p-3 text-gray-500 text-xs text-center">{item.StoreLocation || '-'}</td>
                     <td className="p-3 text-center">
                       <div className="flex justify-center gap-1">
-                        <button onClick={() => setSelectedItem(item)} className="p-1.5 text-blue-400 hover:bg-blue-500/10 rounded-lg group/edit"><Edit2 size={14} className="group-hover/edit:scale-110 transition-transform"/></button>
-                        <button onClick={(e) => { e.stopPropagation(); handleDeleteItem(item); }} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg group/del"><Trash2 size={14} className="group-hover/del:scale-110 transition-transform"/></button>
+                        <button onClick={() => setSelectedItem(item)} className="p-1.5 text-blue-400 hover:bg-blue-500/10 rounded-lg group/edit"><Edit2 size={14} className="group-hover/edit:scale-110 transition-transform" /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteItem(item); }} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg group/del"><Trash2 size={14} className="group-hover/del:scale-110 transition-transform" /></button>
                       </div>
                     </td>
                   </tr>
@@ -628,6 +822,7 @@ export default function ShopeeStock() {
             </table>
           </div>
           <AnimatePresence>{selectedItem && <StockDetailModal item={selectedItem} onSave={saveEdit} onClose={cancelEdit} onAddNew={handleCopyAsNew} isAddingNew={isAddingNew} />}</AnimatePresence>
+          <AnimatePresence>{isBulkAdding && <BulkAddModal items={draftBulkItems} onSave={handleConfirmBulkAdd} onClose={() => { setIsBulkAdding(false); setDraftBulkItems([]); }} />}</AnimatePresence>
         </div>
       )}
     </div>
