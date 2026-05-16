@@ -263,20 +263,31 @@ export async function incrementalSync() {
   }
 
   // ── Scenario 2: Has cache but no lastSync (first time after update) ──────
+  //    Use the oldest cache timestamp as the starting point so we catch
+  //    any changes made on other devices since the cache was last populated.
+  let effectiveLastSync = lastSync;
   if (!lastSync) {
-    console.log('[Sync] Cache exists but no sync timestamp — setting baseline...');
-    setLastSyncTimestamp(Date.now());
-    return { totalChanges: 0, totalDeletions: 0, fullSync: false, baseline: true };
+    // Find the oldest cache timestamp across all collections
+    let oldestCacheTs = Date.now();
+    for (const name of ALL_SYNCABLE) {
+      const ts = localStorage.getItem(getTsKey(name));
+      if (ts) {
+        const parsed = parseInt(ts, 10);
+        if (parsed < oldestCacheTs) oldestCacheTs = parsed;
+      }
+    }
+    console.log(`[Sync] No sync timestamp — using oldest cache time: ${new Date(oldestCacheTs).toLocaleString()}`);
+    effectiveLastSync = oldestCacheTs;
   }
 
   // ── Scenario 3: Normal incremental sync ──────────────────────────────────
-  console.log(`[Sync] Incremental sync — fetching changes since ${new Date(lastSync).toLocaleString()}...`);
+  console.log(`[Sync] Incremental sync — fetching changes since ${new Date(effectiveLastSync).toLocaleString()}...`);
   let totalChanges = 0;
   let totalDeletions = 0;
 
   // 3a. Fetch changed docs for each collection
   for (const name of ALL_SYNCABLE) {
-    const changedDocs = await fetchChangedSince(name, lastSync);
+    const changedDocs = await fetchChangedSince(name, effectiveLastSync);
     if (changedDocs.length > 0) {
       // Merge changed docs into local cache
       const existingCache = getLocalCache(name) || [];
@@ -297,7 +308,7 @@ export async function incrementalSync() {
   }
 
   // 3b. Process deletions
-  const deletions = await fetchDeletionsSince(lastSync);
+  const deletions = await fetchDeletionsSince(effectiveLastSync);
   for (const del of deletions) {
     const cache = getLocalCache(del.collection);
     if (cache) {

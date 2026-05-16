@@ -62,8 +62,6 @@ const Layout = () => {
       // Build status message
       if (result.fullSync) {
         setSyncStatus({ msg: `Full sync complete ✓ (${result.totalChanges} docs loaded)`, type: 'success' });
-      } else if (result.baseline) {
-        setSyncStatus({ msg: 'Sync baseline set ✓ (cache up to date)', type: 'success' });
       } else if (result.totalChanges === 0 && result.totalDeletions === 0) {
         setSyncStatus({ msg: 'Already up to date ✓', type: 'success' });
       } else {
