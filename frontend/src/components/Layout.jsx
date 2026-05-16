@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { incrementalSync, forceFullSync } from '../lib/firestoreApi';
-import { Calculator, BarChart3, LogOut, Package, RefreshCcw, MessageSquare, FileSpreadsheet, Menu, X } from 'lucide-react';
+import { incrementalSync, forceFullSync, migrateStampAllDocs } from '../lib/firestoreApi';
+import { Calculator, BarChart3, LogOut, Package, RefreshCcw, MessageSquare, FileSpreadsheet, Menu, X, Database } from 'lucide-react';
 
 const Layout = () => {
   const { isAuthenticated, logout } = useAuth();
   const location = useLocation();
   const [syncing, setSyncing] = useState(false);
+  const [migrating, setMigrating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState(null); // { msg, type }
   const [lastSync, setLastSync] = useState(
@@ -169,12 +170,34 @@ const Layout = () => {
           </div>
           <button
             onClick={handleSync}
-            disabled={syncing}
+            disabled={syncing || migrating}
             className="w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-xl bg-blue-600/10 text-blue-400 border border-blue-500/20 hover:bg-blue-600/20 transition-all duration-200 disabled:opacity-50"
             title="Sync changes from cloud (Shift+Click for full sync)"
           >
             <RefreshCcw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
             <span className="font-medium text-sm">{syncing ? 'Syncing...' : 'Sync with Cloud'}</span>
+          </button>
+          <button
+            onClick={async () => {
+              if (!window.confirm('This will stamp ALL existing records with a sync timestamp (one-time migration).\n\nThis uses writes but is needed so incremental sync can detect old records.\n\nProceed?')) return;
+              setMigrating(true);
+              setSyncStatus(null);
+              try {
+                const result = await migrateStampAllDocs();
+                setSyncStatus({ msg: `Migration done ✓ (${result.totalStamped} stamped, ${result.totalSkipped} already OK)`, type: 'success' });
+              } catch (error) {
+                console.error('[Migration] Failed:', error);
+                setSyncStatus({ msg: 'Migration failed — check console', type: 'error' });
+              } finally {
+                setMigrating(false);
+              }
+            }}
+            disabled={syncing || migrating}
+            className="w-full flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-amber-600/10 text-amber-400 border border-amber-500/20 hover:bg-amber-600/20 transition-all duration-200 disabled:opacity-50"
+            title="One-time: stamp all old records with sync timestamp"
+          >
+            <Database className={`w-4 h-4 ${migrating ? 'animate-pulse' : ''}`} />
+            <span className="font-medium text-xs">{migrating ? 'Stamping...' : 'Stamp Records (1st time)'}</span>
           </button>
           {syncStatus && (
             <div className={`text-[11px] font-medium px-3 py-2 rounded-lg text-center transition-all ${

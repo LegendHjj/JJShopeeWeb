@@ -351,3 +351,64 @@ export function clearAllCaches() {
   });
   localStorage.removeItem(LAST_SYNC_KEY);
 }
+
+// ─── One-Time Migration: Stamp all existing docs with _updatedAt ─────────────
+/**
+ * Goes through ALL syncable collections and stamps any document missing
+ * `_updatedAt` with the current timestamp. This is needed once so that
+ * incremental sync can "see" old records created before the feature existed.
+ *
+ * Only writes to docs that DON'T already have _updatedAt (minimizes writes).
+ * Returns { totalStamped, totalSkipped }
+ */
+export async function migrateStampAllDocs() {
+  const BATCH_SIZE = 450;
+  let totalStamped = 0;
+  let totalSkipped = 0;
+  const now = Timestamp.now();
+
+  for (const collectionName of ALL_SYNCABLE) {
+    console.log(`[Migration] Checking ${collectionName}...`);
+    const colRef = collection(db, collectionName);
+    const snapshot = await getDocs(colRef);
+
+    // Filter docs missing _updatedAt
+    const docsToStamp = snapshot.docs.filter(d => !d.data()._updatedAt);
+
+    if (docsToStamp.length === 0) {
+      console.log(`[Migration] ${collectionName}: all docs already stamped ✓`);
+      totalSkipped += snapshot.docs.length;
+      continue;
+    }
+
+    console.log(`[Migration] ${collectionName}: stamping ${docsToStamp.length} / ${snapshot.docs.length} docs...`);
+
+    // Batch update in chunks
+    for (let i = 0; i < docsToStamp.length; i += BATCH_SIZE) {
+      const chunk = docsToStamp.slice(i, i + BATCH_SIZE);
+      const batch = writeBatch(db);
+
+      for (const docSnap of chunk) {
+        const docRef = doc(db, collectionName, docSnap.id);
+        batch.update(docRef, { _updatedAt: now });
+      }
+
+      await batch.commit();
+    }
+
+    totalStamped += docsToStamp.length;
+    totalSkipped += (snapshot.docs.length - docsToStamp.length);
+
+    // Also update local cache with the stamped data
+    const updatedData = snapshot.docs.map(d => ({
+      _docId: d.id,
+      ...d.data(),
+      _updatedAt: d.data()._updatedAt || { seconds: Math.floor(Date.now() / 1000), nanoseconds: 0 },
+    }));
+    setLocalCache(collectionName, updatedData);
+  }
+
+  setLastSyncTimestamp(Date.now());
+  console.log(`[Migration] Complete: ${totalStamped} stamped, ${totalSkipped} already had timestamp`);
+  return { totalStamped, totalSkipped };
+}
