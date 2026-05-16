@@ -30,7 +30,7 @@ const StockDetailModal = ({ item, onSave, onClose, onAddNew, isAddingNew }) => {
   const labelCls = "block text-xs font-medium text-gray-400 mb-1";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onDoubleClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -39,8 +39,7 @@ const StockDetailModal = ({ item, onSave, onClose, onAddNew, isAddingNew }) => {
         className="relative bg-[#141414] border border-white/10 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-5 border-b border-white/5 sticky top-0 bg-[#141414] z-10"
-          onDoubleClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-white/5 sticky top-0 bg-[#141414] z-10">
           <div>
             <h2 className="text-lg font-bold text-white">📦 Stock Item Detail</h2>
             <p className="text-xs text-gray-400 mt-0.5">#{form.seqNr} — {form.productName || 'Unnamed Product'}</p>
@@ -474,39 +473,42 @@ export default function ShopeeStock() {
 
   const handlePrint = () => { setPrintDate(new Date().toLocaleString()); setTimeout(() => window.print(), 100); };
 
-  const handleSaveStock = async () => {
+
+
+  const saveEdit = async (updatedItem) => {
+    let newData;
+    if (isAddingNew) {
+      newData = [updatedItem, ...stockData];
+    } else {
+      newData = stockData.map(item => (item._docId === updatedItem._docId || item._localId === updatedItem._localId) ? updatedItem : item);
+    }
+    setStockData(newData);
+    setSelectedItem(null);
+    setIsAddingNew(false);
+
     try {
       setLoading(true);
-      const modifiedItems = stockData.filter(item => {
-        if (!item._docId) return true;
-        const original = originalStockData.find(o => o._docId === item._docId);
-        return !original || JSON.stringify(item) !== JSON.stringify(original);
-      });
-      if (modifiedItems.length === 0) return alert("No changes to save.");
-      console.log(`[Cloud Save] Saving ${modifiedItems.length} items...`);
-      const savedItems = await saveCollection(COLLECTIONS.shopee.prodStockCalc, modifiedItems);
+      const savedItems = await saveCollection(COLLECTIONS.shopee.prodStockCalc, [updatedItem]);
       if (savedItems && savedItems.length > 0) {
+        const saved = savedItems[0];
         setStockData(prev => prev.map(item => {
-          const saved = savedItems.find(s => (item._docId && s._docId === item._docId) || (item._localId && s._localId === item._localId));
-          return saved ? { ...saved, _localId: item._localId } : item;
+          return ((item._docId && saved._docId === item._docId) || (item._localId && saved._localId === item._localId)) 
+            ? { ...saved, _localId: item._localId } : item;
         }));
         setOriginalStockData(prev => {
           const next = [...prev];
-          savedItems.forEach(s => {
-            const i = next.findIndex(n => n._docId === s._docId);
-            if (i >= 0) next[i] = JSON.parse(JSON.stringify(s)); else next.push(JSON.parse(JSON.stringify(s)));
-          });
+          const i = next.findIndex(n => n._docId === saved._docId);
+          if (i >= 0) next[i] = JSON.parse(JSON.stringify(saved)); 
+          else next.push(JSON.parse(JSON.stringify(saved)));
           return next;
         });
       }
-      alert(`Successfully saved ${modifiedItems.length} items!`);
-    } catch (error) { console.error(error); alert("Save failed."); } finally { setLoading(false); }
-  };
-
-  const saveEdit = (updatedItem) => {
-    if (isAddingNew) setStockData(prev => [updatedItem, ...prev]);
-    else setStockData(prev => prev.map(item => (item._docId === updatedItem._docId || item._localId === updatedItem._localId) ? updatedItem : item));
-    setSelectedItem(null); setIsAddingNew(false);
+    } catch (error) {
+      console.error("Auto-save failed:", error);
+      alert("Auto-save to cloud failed. Please check network.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const cancelEdit = () => { setSelectedItem(null); setIsAddingNew(false); };
@@ -779,8 +781,10 @@ export default function ShopeeStock() {
                 <FileJson size={16} /> Bulk Add Items
                 <Info size={14} className="opacity-70 group-hover:opacity-100" />
               </button>
+              <button onClick={handleExportJson} title="Export stock data to JSON" className="flex-1 md:flex-none px-4 py-2.5 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-xl hover:bg-emerald-600/30 transition-all font-medium text-sm flex items-center justify-center gap-2">
+                <Download size={16} /> Export JSON
+              </button>
               <button onClick={handleAddNew} className="flex-1 md:flex-none px-4 py-2.5 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-xl hover:bg-blue-600/30 transition-all font-medium text-sm">Add Item</button>
-              <button onClick={handleSaveStock} disabled={loading} className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm"> {loading ? <RefreshCw className="animate-spin" size={18} /> : <Check size={18} />} Save to Cloud</button>
             </div>
           </div>
           <div className="overflow-auto border border-white/5 rounded-xl bg-black/20" style={{ maxHeight: 'min(600px, 60vh)' }}>

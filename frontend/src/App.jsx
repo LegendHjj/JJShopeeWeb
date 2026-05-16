@@ -9,6 +9,7 @@ import ProfitManager from './pages/ProfitManager';
 import ShopeeStock from './pages/ShopeeStock';
 import SupportFAQ from './pages/SupportFAQ';
 import VariantChecker from './pages/VariantChecker';
+import Troubleshooting from './pages/Troubleshooting';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
             <Route path="shopee-stock" element={<ShopeeStock />} />
             <Route path="support-faq" element={<SupportFAQ />} />
             <Route path="variant-checker" element={<VariantChecker />} />
+            <Route path="troubleshooting" element={<Troubleshooting />} />
           </Route>
         </Routes>
       </Router>
