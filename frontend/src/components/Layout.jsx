@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { clearAllCaches } from '../lib/firestoreApi';
+import { incrementalSync, forceFullSync } from '../lib/firestoreApi';
 import { Calculator, BarChart3, LogOut, Package, RefreshCcw, MessageSquare, FileSpreadsheet, Menu, X } from 'lucide-react';
 
 const Layout = () => {
@@ -9,6 +9,7 @@ const Layout = () => {
   const location = useLocation();
   const [syncing, setSyncing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(null); // { msg, type }
   const [lastSync, setLastSync] = useState(
     localStorage.getItem('shopee_last_global_sync') || 'Never'
   );
@@ -28,22 +29,59 @@ const Layout = () => {
     return () => { document.body.style.overflow = ''; };
   }, [sidebarOpen]);
 
+  // Auto-hide sync status after 4 seconds
+  useEffect(() => {
+    if (syncStatus) {
+      const timer = setTimeout(() => setSyncStatus(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [syncStatus]);
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  const handleSync = async () => {
+  const handleSync = async (e) => {
     setSyncing(true);
-    // 1. Clear all local storage caches
-    clearAllCaches();
-    
-    // 2. Set last sync time
-    const now = new Date().toLocaleString();
-    localStorage.setItem('shopee_last_global_sync', now);
-    setLastSync(now);
+    setSyncStatus(null);
 
-    // 3. Simple reload of the window to force all pages to re-fetch from Firebase
-    window.location.reload();
+    try {
+      let result;
+      // Shift+Click = Force Full Sync (fallback for troubleshooting)
+      if (e && e.shiftKey) {
+        result = await forceFullSync();
+      } else {
+        result = await incrementalSync();
+      }
+
+      // Update last sync display
+      const now = new Date().toLocaleString();
+      localStorage.setItem('shopee_last_global_sync', now);
+      setLastSync(now);
+
+      // Build status message
+      if (result.fullSync) {
+        setSyncStatus({ msg: `Full sync complete ✓ (${result.totalChanges} docs loaded)`, type: 'success' });
+      } else if (result.baseline) {
+        setSyncStatus({ msg: 'Sync baseline set ✓ (cache up to date)', type: 'success' });
+      } else if (result.totalChanges === 0 && result.totalDeletions === 0) {
+        setSyncStatus({ msg: 'Already up to date ✓', type: 'success' });
+      } else {
+        const parts = [];
+        if (result.totalChanges > 0) parts.push(`${result.totalChanges} change(s)`);
+        if (result.totalDeletions > 0) parts.push(`${result.totalDeletions} deletion(s)`);
+        setSyncStatus({ msg: `Synced: ${parts.join(', ')} ✓`, type: 'success' });
+      }
+
+      // Reload page to reflect synced data in all components
+      // Small delay so user can see the status message
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (error) {
+      console.error('[Sync] Failed:', error);
+      setSyncStatus({ msg: 'Sync failed — check network', type: 'error' });
+    } finally {
+      setSyncing(false);
+    }
   };
 
   const navItems = [
@@ -135,10 +173,20 @@ const Layout = () => {
             onClick={handleSync}
             disabled={syncing}
             className="w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-xl bg-blue-600/10 text-blue-400 border border-blue-500/20 hover:bg-blue-600/20 transition-all duration-200 disabled:opacity-50"
+            title="Sync changes from cloud (Shift+Click for full sync)"
           >
             <RefreshCcw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-            <span className="font-medium text-sm">Sync with Cloud</span>
+            <span className="font-medium text-sm">{syncing ? 'Syncing...' : 'Sync with Cloud'}</span>
           </button>
+          {syncStatus && (
+            <div className={`text-[11px] font-medium px-3 py-2 rounded-lg text-center transition-all ${
+              syncStatus.type === 'error' 
+                ? 'bg-red-500/10 text-red-400 border border-red-500/20' 
+                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+            }`}>
+              {syncStatus.msg}
+            </div>
+          )}
           <button
             onClick={logout}
             className="w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
