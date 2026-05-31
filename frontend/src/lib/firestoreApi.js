@@ -352,6 +352,71 @@ export function clearAllCaches() {
   localStorage.removeItem(LAST_SYNC_KEY);
 }
 
+// ─── Recovery: Reset corrupted _updatedAt timestamps ────────────────────────
+/**
+ * Sets _updatedAt = Timestamp.fromMillis(1) ("epoch-zero") on EVERY doc in
+ * every syncable collection.
+ *
+ * WHY: A past bug caused all 400+ docs to be stamped with the current time on
+ * every save. Since other devices' lastSyncTimestamp is older than those fresh
+ * timestamps, they see all 400+ docs as "changed" on every sync.
+ *
+ * FIX: By resetting _updatedAt to epoch-zero (1 ms), every device's
+ * lastSyncTimestamp will be NEWER than the stored timestamps, so the next
+ * incremental sync returns 0 changed docs (instead of 400+). Future genuine
+ * changes will still get fresh timestamps and sync normally.
+ *
+ * Returns { totalReset, collectionsProcessed }
+ */
+export async function resetUpdatedAtTimestamps() {
+  const EPOCH_ZERO = Timestamp.fromMillis(1); // effectively "never updated"
+  const BATCH_SIZE = 450;
+  let totalReset = 0;
+  let collectionsProcessed = 0;
+
+  for (const collectionName of ALL_SYNCABLE) {
+    console.log(`[Reset] Fetching all docs from ${collectionName}...`);
+    const colRef = collection(db, collectionName);
+    const snapshot = await getDocs(colRef);
+
+    if (snapshot.empty) {
+      console.log(`[Reset] ${collectionName}: empty, skipping`);
+      continue;
+    }
+
+    console.log(`[Reset] ${collectionName}: resetting _updatedAt on ${snapshot.docs.length} docs...`);
+
+    // Batch-write in chunks of 450
+    for (let i = 0; i < snapshot.docs.length; i += BATCH_SIZE) {
+      const chunk = snapshot.docs.slice(i, i + BATCH_SIZE);
+      const batch = writeBatch(db);
+      for (const docSnap of chunk) {
+        batch.update(doc(db, collectionName, docSnap.id), { _updatedAt: EPOCH_ZERO });
+      }
+      await batch.commit();
+    }
+
+    totalReset += snapshot.docs.length;
+    collectionsProcessed++;
+
+    // Also update local cache so the cache reflects the reset timestamps
+    const cachedData = getLocalCache(collectionName);
+    if (cachedData) {
+      const resetCache = cachedData.map(item => ({
+        ...item,
+        _updatedAt: { seconds: 0, nanoseconds: 1 },
+      }));
+      setLocalCache(collectionName, resetCache);
+    }
+  }
+
+  // Set lastSyncTimestamp to NOW on this device so it also won't re-pull these
+  setLastSyncTimestamp(Date.now());
+
+  console.log(`[Reset] Complete: ${totalReset} docs reset across ${collectionsProcessed} collections`);
+  return { totalReset, collectionsProcessed };
+}
+
 // ─── One-Time Migration: Stamp all existing docs with _updatedAt ─────────────
 /**
  * Goes through ALL syncable collections and stamps any document missing

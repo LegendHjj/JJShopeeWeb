@@ -276,7 +276,7 @@ const ProfitManager = () => {
   const [productCostData, setProductCostData] = useState([]);
   const [originalProductCostData, setOriginalProductCostData] = useState([]);
   const [originalData, setOriginalData]       = useState([]);
-  const [originalOriginalData, setOriginalOriginalData] = useState([]);
+  // originalOriginalData removed — orgProductInfo diff now uses field-level comparison by seqNr
   const [loading, setLoading]                 = useState(true);
   const [saving, setSaving]                   = useState(false);
   const [source, setSource]                   = useState('shopee'); // 'shopee' | 'tiktok'
@@ -315,7 +315,6 @@ const ProfitManager = () => {
       setProductCostData((costData || []).map(item => ({ ...item, _localId: item._docId || Math.random().toString(36).substr(2, 9) })));
       setOriginalProductCostData(JSON.parse(JSON.stringify(costData || [])));
       setOriginalData((orgData || []).map(item => ({ ...item, _localId: item._docId || Math.random().toString(36).substr(2, 9) })));
-      setOriginalOriginalData(JSON.parse(JSON.stringify(orgData || [])));
     } catch (err) {
       showNotification('Error loading data from Firestore.', 'error');
     } finally {
@@ -358,11 +357,16 @@ const ProfitManager = () => {
       const cols = source === 'tiktok' ? COLLECTIONS.tiktok : COLLECTIONS.shopee;
 
       // 1. Filter modified cost data
+      // IMPORTANT: strip _localId (client-only) and _updatedAt (server-managed) before
+      // comparing, otherwise every item looks "modified" because productCostData has _localId
+      // while originalProductCostData does not — causing all 400+ items to be saved every time.
       const modifiedCost = costData.filter(item => {
         if (!item._docId) return true; // Brand new
         const original = originalProductCostData.find(o => o._docId === item._docId);
         if (!original) return true;
-        return JSON.stringify(item) !== JSON.stringify(original);
+        const { _localId: _a, _updatedAt: _b, ...itemData } = item;
+        const { _localId: _c, _updatedAt: _d, ...origData } = original;
+        return JSON.stringify(itemData) !== JSON.stringify(origData);
       });
 
       // 2. Sync orgProductInfo and track what actually changed there
@@ -385,9 +389,22 @@ const ProfitManager = () => {
         };
 
         if (idx >= 0) {
-          // Sync based on SeqNr only for Org collection linkage
-          const orgOriginal = originalOriginalData.find(o => o._docId === costRow._docId);
-          if (!orgOriginal || JSON.stringify(entry) !== JSON.stringify(orgOriginal)) {
+          // Compare by seqNr (shared key across both collections).
+          // Normalize types to avoid false positives from Firestore null vs '' / null vs 0 / null vs false.
+          const existingOrgRow = updatedOrg[idx];
+          const normStr  = (v) => (v === null || v === undefined) ? '' : String(v);
+          const normNum  = (v) => Number(v) || 0;
+          const normBool = (v) => Boolean(v);
+          const orgChanged = (
+            normStr(existingOrgRow.productName)       !== normStr(entry.productName)       ||
+            normNum(existingOrgRow.productPrice)      !== normNum(entry.productPrice)      ||
+            normBool(existingOrgRow.includedPackageFee) !== normBool(entry.includedPackageFee) ||
+            normBool(existingOrgRow.blnCalcPer10)     !== normBool(entry.blnCalcPer10)     ||
+            normStr(existingOrgRow.VariantianID)      !== normStr(entry.VariantianID)      ||
+            normStr(existingOrgRow.SKUID)             !== normStr(entry.SKUID)             ||
+            normNum(existingOrgRow.sellingPrice)      !== normNum(entry.sellingPrice)
+          );
+          if (orgChanged) {
             Object.assign(updatedOrg[idx], entry);
             itemsToUpdateInOrg.push(updatedOrg[idx]);
           }

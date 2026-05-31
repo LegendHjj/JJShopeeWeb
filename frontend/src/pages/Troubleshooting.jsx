@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Database, RefreshCw, Trash2, AlertCircle } from 'lucide-react';
+import { Database, RefreshCw, Trash2, AlertCircle, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { migrateStampAllDocs, clearAllCaches, forceFullSync } from '../lib/firestoreApi';
+import { migrateStampAllDocs, clearAllCaches, forceFullSync, resetUpdatedAtTimestamps } from '../lib/firestoreApi';
 
 const Troubleshooting = () => {
   const [status, setStatus] = useState(null); // { msg, type }
@@ -52,7 +52,43 @@ const Troubleshooting = () => {
     showStatus('All local caches cleared ✓ — click "Sync with Cloud" to reload data');
   };
 
+  const handleResetTimestamps = async () => {
+    if (!window.confirm(
+      '⚠️ Reset Sync Timestamps\n\n' +
+      'This fixes the "400+ items updated on every sync" problem by resetting\n' +
+      '_updatedAt to epoch-zero on ALL Firestore records.\n\n' +
+      'After this runs:\n' +
+      '  • This device: sync timestamp updated to NOW (no re-download needed)\n' +
+      '  • Other devices: their next sync will see 0 changed items ✓\n' +
+      '  • Future saves/edits will still sync normally\n\n' +
+      'This will use 1 READ + 1 WRITE per document. Proceed?'
+    )) return;
+
+    setRunning(true);
+    try {
+      const result = await resetUpdatedAtTimestamps();
+      showStatus(
+        `Reset complete ✓ — ${result.totalReset} records across ${result.collectionsProcessed} collections reset. ` +
+        `Other devices will no longer see mass-updates on next sync.`
+      );
+    } catch (error) {
+      console.error('[Reset] Failed:', error);
+      showStatus('Reset failed — check console for details', 'error');
+    } finally {
+      setRunning(false);
+    }
+  };
+
   const tools = [
+    {
+      title: 'Reset Sync Timestamps',
+      description: 'Fixes the "400+ items updated on every sync" bug. Resets _updatedAt to epoch-zero on all Firestore records so other devices see 0 false-changes on their next sync. Run this once to clean up corrupted timestamps left by the previous save bug.',
+      icon: RotateCcw,
+      color: 'purple',
+      action: handleResetTimestamps,
+      buttonText: 'Reset Timestamps',
+      badge: 'Recovery',
+    },
     {
       title: 'Stamp Records (One-Time)',
       description: 'Stamps all existing Firebase records with _updatedAt timestamp. Required once so incremental sync can detect old records created before the sync feature was added.',
@@ -81,9 +117,10 @@ const Troubleshooting = () => {
 
   const getColorClasses = (color) => {
     const map = {
-      amber: { bg: 'bg-amber-600/10', border: 'border-amber-500/20', text: 'text-amber-400', hover: 'hover:bg-amber-600/20', iconBg: 'bg-amber-500/10' },
-      blue: { bg: 'bg-blue-600/10', border: 'border-blue-500/20', text: 'text-blue-400', hover: 'hover:bg-blue-600/20', iconBg: 'bg-blue-500/10' },
-      red: { bg: 'bg-red-600/10', border: 'border-red-500/20', text: 'text-red-400', hover: 'hover:bg-red-600/20', iconBg: 'bg-red-500/10' },
+      purple: { bg: 'bg-purple-600/10', border: 'border-purple-500/20', text: 'text-purple-400', hover: 'hover:bg-purple-600/20', iconBg: 'bg-purple-500/10' },
+      amber:  { bg: 'bg-amber-600/10',  border: 'border-amber-500/20',  text: 'text-amber-400',  hover: 'hover:bg-amber-600/20',  iconBg: 'bg-amber-500/10' },
+      blue:   { bg: 'bg-blue-600/10',   border: 'border-blue-500/20',   text: 'text-blue-400',   hover: 'hover:bg-blue-600/20',   iconBg: 'bg-blue-500/10' },
+      red:    { bg: 'bg-red-600/10',    border: 'border-red-500/20',    text: 'text-red-400',    hover: 'hover:bg-red-600/20',    iconBg: 'bg-red-500/10' },
     };
     return map[color] || map.blue;
   };
@@ -154,6 +191,7 @@ const Troubleshooting = () => {
         <div className="space-y-2 text-xs text-gray-500">
           <p>• <span className="text-gray-400">Sync with Cloud</span> — Incrementally fetches only changed records (low quota usage)</p>
           <p>• <span className="text-gray-400">Shift + Click Sync</span> — Forces a full re-fetch of all data (higher quota usage)</p>
+          <p>• <span className="text-purple-400 font-medium">Reset Sync Timestamps</span> — Use when sync shows 400+ items after every change. Resets _updatedAt on all docs so other devices stop seeing false mass-updates</p>
           <p>• <span className="text-gray-400">Stamp Records</span> — One-time migration to add timestamps to old records</p>
           <p>• <span className="text-gray-400">Last Sync Timestamp</span>: {localStorage.getItem('shopee_last_sync_timestamp') ? new Date(parseInt(localStorage.getItem('shopee_last_sync_timestamp'))).toLocaleString() : 'Not set'}</p>
         </div>
