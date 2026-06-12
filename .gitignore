@@ -21,3 +21,5 @@ frontend/.env.local
 # OS
 .DS_Store
 Thumbs.db
+package-lock.json
+frontend/package-lock.json

@@ -10,6 +10,7 @@ import ShopeeStock from './pages/ShopeeStock';
 import SupportFAQ from './pages/SupportFAQ';
 import VariantChecker from './pages/VariantChecker';
 import Troubleshooting from './pages/Troubleshooting';
+import ChinaCosting from './pages/ChinaCosting';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
             <Route path="shopee-stock" element={<ShopeeStock />} />
             <Route path="support-faq" element={<SupportFAQ />} />
             <Route path="variant-checker" element={<VariantChecker />} />
+            <Route path="china-costing" element={<ChinaCosting />} />
             <Route path="troubleshooting" element={<Troubleshooting />} />
           </Route>
         </Routes>
