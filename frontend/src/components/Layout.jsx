@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { incrementalSync, forceFullSync } from '../lib/firestoreApi';
-import { Calculator, BarChart3, LogOut, Package, RefreshCcw, MessageSquare, FileSpreadsheet, Menu, X, Wrench, Globe } from 'lucide-react';
+import { Calculator, BarChart3, LogOut, Package, RefreshCcw, MessageSquare, FileSpreadsheet, Menu, X, Wrench, Globe, Boxes } from 'lucide-react';
 
 const Layout = () => {
   const { isAuthenticated, logout } = useAuth();
@@ -104,9 +104,12 @@ const Layout = () => {
         >
           <Menu size={22} />
         </button>
-        <h1 className="text-base font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-          ShopeeWeb
-        </h1>
+        <div className="flex items-center gap-2">
+          <span className="grid h-7 w-7 place-items-center rounded-lg bg-orange-600 text-white">
+            <Boxes size={16} />
+          </span>
+          <h1 className="text-sm font-bold tracking-tight text-white">ShopeeWeb</h1>
+        </div>
         <div className="w-10" /> {/* Spacer to center title */}
       </div>
 
@@ -125,12 +128,17 @@ const Layout = () => {
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         md:translate-x-0
       `}>
-        <div className="p-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-              ShopeeWeb
-            </h1>
-            <p className="text-xs text-gray-500 mt-1">Management Dashboard</p>
+        <div className="p-5 flex items-center justify-between border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-orange-600 text-white shadow-lg shadow-blue-900/10">
+              <Boxes size={20} />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold tracking-tight text-white">
+                ShopeeWeb
+              </h1>
+              <p className="text-[11px] font-medium uppercase tracking-wider text-gray-500">Ops Console</p>
+            </div>
           </div>
           {/* Close button - mobile only */}
           <button
@@ -142,7 +150,7 @@ const Layout = () => {
           </button>
         </div>
 
-        <div className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto">
+        <div className="flex-1 px-3 space-y-1.5 mt-4 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
@@ -151,23 +159,23 @@ const Layout = () => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl transition-all duration-200 border ${
                   isActive 
-                    ? 'bg-gradient-to-r from-blue-600/20 to-purple-600/20 text-blue-400 border border-blue-500/20 shadow-lg shadow-blue-900/10' 
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-blue-600/20 text-blue-400 border-blue-500/30 shadow-lg shadow-blue-900/10' 
+                    : 'text-gray-400 border-transparent hover:text-white hover:bg-white/5 hover:border-white/10'
                 }`}
               >
                 <Icon className={`w-5 h-5 ${isActive ? 'text-blue-400' : ''}`} />
-                <span className="font-medium">{item.label}</span>
+                <span className="text-sm font-semibold">{item.label}</span>
               </Link>
             );
           })}
         </div>
 
-        <div className="p-4 border-t border-white/5 space-y-2">
-          <div className="flex flex-col mb-2">
+        <div className="p-4 border-t border-white/5 space-y-2 bg-[#0a0a0a]/35">
+          <div className="flex flex-col mb-2 rounded-xl border border-white/5 bg-white/5 px-3 py-2">
             <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Cloud Sync</span>
-            <span className="text-[10px] text-gray-600">Last: {lastSync}</span>
+            <span className="text-[10px] text-gray-400 truncate">Last: {lastSync}</span>
           </div>
           <button
             onClick={handleSync}
@@ -198,9 +206,8 @@ const Layout = () => {
       </nav>
 
       {/* Main Content Area */}
-      <main className="flex-1 ml-0 md:ml-64 pt-16 md:pt-0 p-4 md:p-8 bg-[#0a0a0a] relative min-h-screen print:ml-0 print:p-0 print:bg-white">
-         {/* Subtle radial gradient background */}
-         <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-[#141414] to-transparent pointer-events-none print:hidden" />
+      <main className="flex-1 ml-0 md:ml-64 pt-16 md:pt-0 p-4 md:p-7 bg-[#0a0a0a] relative min-h-screen print:ml-0 print:p-0 print:bg-white">
+         <div className="absolute inset-x-0 top-0 h-24 border-b border-white/5 bg-[#141414]/35 pointer-events-none print:hidden" />
          
          <div className="relative z-10 max-w-7xl mx-auto">
            <Outlet />

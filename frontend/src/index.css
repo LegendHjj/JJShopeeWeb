@@ -1,8 +1,21 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   color-scheme: dark;
+  --app-bg: #11100f;
+  --app-panel: #181713;
+  --app-panel-raised: #211f1a;
+  --app-panel-soft: #2a261f;
+  --app-border: rgb(245 244 239 / 0.12);
+  --app-border-strong: rgb(245 244 239 / 0.2);
+  --app-text: #f5f4ef;
+  --app-muted: #a9a49a;
+  --app-subtle: #767166;
+  --app-accent: #f97316;
+  --app-accent-soft: rgb(249 115 22 / 0.16);
+  --app-accent-border: rgb(249 115 22 / 0.34);
+  --app-accent-hover: #fb923c;
+  --app-focus: rgb(251 146 60 / 0.45);
 }
 
 * {
@@ -10,13 +23,154 @@
 }
 
 body {
-  background-color: #0a0a0a;
-  color: #ffffff;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--app-bg);
+  color: var(--app-text);
+  font-family: Aptos, "Segoe UI", system-ui, -apple-system, sans-serif;
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
+}
+
+::selection {
+  background: rgb(249 115 22 / 0.28);
+  color: var(--app-text);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  outline-color: var(--app-focus);
+}
+
+/* App-wide redesign skin: remove the old Gemini-like blue/purple chrome
+   while preserving existing component structure and behavior. */
+.bg-\[\#0a0a0a\] { background-color: var(--app-bg) !important; }
+.bg-\[\#141414\] { background-color: var(--app-panel) !important; }
+.bg-\[\#1a1a1a\] { background-color: var(--app-panel-raised) !important; }
+.bg-\[\#0f0f0f\] { background-color: #15130f !important; }
+
+.text-white { color: var(--app-text) !important; }
+.text-gray-300 { color: #d7d3ca !important; }
+.text-gray-400 { color: var(--app-muted) !important; }
+.text-gray-500 { color: var(--app-subtle) !important; }
+.text-gray-600 { color: #5f5a50 !important; }
+
+.border-white\/5 { border-color: rgb(245 244 239 / 0.08) !important; }
+.border-white\/10 { border-color: var(--app-border) !important; }
+.border-white\/20 { border-color: var(--app-border-strong) !important; }
+.bg-white\/5 { background-color: rgb(245 244 239 / 0.055) !important; }
+.bg-white\/10 { background-color: rgb(245 244 239 / 0.1) !important; }
+.hover\:bg-white\/5:hover { background-color: rgb(245 244 239 / 0.075) !important; }
+.hover\:bg-white\/10:hover { background-color: rgb(245 244 239 / 0.12) !important; }
+
+.text-blue-400,
+.text-blue-500,
+.text-indigo-400,
+.text-purple-400,
+.text-purple-500 {
+  color: var(--app-accent-hover) !important;
+}
+
+.bg-blue-600,
+.bg-blue-500,
+.bg-indigo-600,
+.bg-purple-600,
+.from-blue-600,
+.from-blue-500,
+.from-indigo-600,
+.from-purple-600,
+.to-blue-600,
+.to-blue-500,
+.to-indigo-600,
+.to-purple-600,
+.to-purple-500 {
+  --tw-gradient-from: var(--app-accent) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: #b45309 var(--tw-gradient-to-position) !important;
+  background-color: var(--app-accent) !important;
+}
+
+.bg-blue-600\/10,
+.bg-blue-600\/20,
+.bg-blue-500\/10,
+.bg-indigo-600\/20,
+.bg-purple-600\/10,
+.bg-purple-600\/20,
+.bg-purple-500\/5,
+.bg-blue-500\/5 {
+  background-color: var(--app-accent-soft) !important;
+}
+
+.border-blue-500\/20,
+.border-blue-500\/30,
+.border-blue-500\/40,
+.border-purple-500\/20,
+.border-purple-500\/30,
+.border-purple-500\/40,
+.border-indigo-500\/30 {
+  border-color: var(--app-accent-border) !important;
+}
+
+.hover\:bg-blue-600\/20:hover,
+.hover\:bg-blue-600\/30:hover,
+.hover\:bg-indigo-600\/30:hover,
+.hover\:bg-purple-600\/20:hover,
+.hover\:bg-purple-600\/30:hover,
+.hover\:bg-blue-500\/10:hover {
+  background-color: rgb(249 115 22 / 0.23) !important;
+}
+
+.hover\:bg-blue-500:hover,
+.hover\:bg-blue-700:hover,
+.hover\:from-blue-500:hover,
+.hover\:from-purple-500:hover,
+.hover\:to-blue-500:hover,
+.hover\:to-purple-500:hover {
+  background-color: var(--app-accent-hover) !important;
+}
+
+.focus\:border-blue-500:focus,
+.focus\:border-blue-500\/30:focus,
+.focus\:border-blue-500\/50:focus,
+.focus\:border-purple-500:focus,
+.focus\:ring-blue-500:focus,
+.focus\:ring-purple-500:focus {
+  border-color: var(--app-accent-hover) !important;
+  --tw-ring-color: var(--app-focus) !important;
+}
+
+.accent-blue-500,
+.accent-emerald-500 {
+  accent-color: var(--app-accent);
+}
+
+.rounded-2xl,
+.rounded-3xl {
+  border-radius: 0.5rem !important;
+}
+
+.rounded-xl {
+  border-radius: 0.5rem !important;
+}
+
+.shadow-blue-500\/20,
+.shadow-blue-500\/25,
+.shadow-blue-900\/10,
+.shadow-purple-500\/20 {
+  --tw-shadow-color: rgb(249 115 22 / 0.16) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Hide scrollbar utility */

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, ArrowRight, Activity, WifiOff } from 'lucide-react';
+import { Lock, ArrowRight, Boxes, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Login = () => {
@@ -32,23 +32,33 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-600/20 blur-[120px] rounded-full pointer-events-none" />
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] relative overflow-hidden px-4">
+      <div className="absolute inset-0 pointer-events-none opacity-[0.16] [background-image:linear-gradient(rgba(245,244,239,.18)_1px,transparent_1px),linear-gradient(90deg,rgba(245,244,239,.18)_1px,transparent_1px)] [background-size:44px_44px]" />
+      <div className="absolute inset-x-0 top-0 h-24 border-b border-white/5 bg-[#141414]/50 pointer-events-none" />
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md p-6 md:p-8 bg-[#141414] border border-white/10 rounded-2xl shadow-2xl relative z-10 backdrop-blur-xl mx-4 md:mx-0"
+        className="w-full max-w-md p-6 md:p-8 bg-[#141414] border border-white/10 rounded-2xl shadow-2xl relative z-10 backdrop-blur-xl"
       >
-        <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-tr from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-blue-500/20">
-            <Activity className="w-8 h-8 text-white" />
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-7">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <Boxes className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wider text-gray-500 font-bold">ShopeeWeb</p>
+                <h1 className="text-xl font-bold text-white tracking-tight">Ops Console</h1>
+              </div>
+            </div>
+            <div className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/5 text-blue-400">
+              <ShieldCheck size={18} />
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">Welcome Back</h1>
-          <p className="text-gray-400">Sign in to manage your Shopee operations</p>
+          <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">Welcome back</h2>
+          <p className="text-gray-400 text-sm leading-relaxed">Sign in to manage stock, costing, profit, quick replies, and internal operations.</p>
         </div>
 
         {error && (
@@ -84,7 +94,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={isLoading || !password}
-            className="group w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#141414] focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-blue-500/25"
+            className="group w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-xl text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[#141414] focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-blue-500/25"
           >
             {isLoading ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
