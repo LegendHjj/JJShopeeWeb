@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { incrementalSync, forceFullSync } from '../lib/firestoreApi';
-import { Calculator, BarChart3, LogOut, Package, RefreshCcw, MessageSquare, FileSpreadsheet, Menu, X, Wrench, Globe, Boxes } from 'lucide-react';
+import { Calculator, BarChart3, LogOut, Package, RefreshCcw, MessageSquare, FileSpreadsheet, Menu, X, Wrench, Globe, Boxes, ArrowRightLeft } from 'lucide-react';
 
 const Layout = () => {
   const { isAuthenticated, logout } = useAuth();
@@ -87,6 +87,7 @@ const Layout = () => {
     { path: '/calculator', icon: Calculator, label: 'Income Calculator' },
     { path: '/profit-manager', icon: Package, label: 'Profit Manager' },
     { path: '/shopee-stock', icon: Package, label: 'Shopee Stock' },
+    { path: '/bigseller-stock-sync', icon: ArrowRightLeft, label: 'BigSeller Stock Sync' },
     { path: '/china-costing', icon: Globe, label: 'China Costing' },
     { path: '/support-faq', icon: MessageSquare, label: 'Quick Reply' },
     { path: '/variant-checker', icon: FileSpreadsheet, label: 'Variant Checker' },

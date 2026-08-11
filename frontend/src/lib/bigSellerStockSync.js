@@ -18,7 +18,7 @@ const stockNumber = (value, label, itemSku) => {
   return number;
 };
 
-export function buildStockImport(inventoryRows, shopeeRows) {
+export function validateInventoryRows(inventoryRows) {
   const inventoryHeader = inventoryRows?.[0] ?? [];
   const inventorySkuIndex = inventoryHeader.indexOf('SKU Name');
   const inventoryStockIndex = inventoryHeader.indexOf('On Hand');
@@ -26,25 +26,35 @@ export function buildStockImport(inventoryRows, shopeeRows) {
     throw new Error('Inventory file must contain "SKU Name" and "On Hand" columns.');
   }
 
-  const shopeeHeader = shopeeRows?.[0] ?? [];
-  if (shopeeHeader.length !== 8 || SHOPEE_HEADERS.some((header, index) => shopeeHeader[index] !== header)) {
-    throw new Error('Shopee file must keep the fixed 8-column header.');
-  }
-
   const inventoryStock = new Map();
   for (const row of inventoryRows.slice(1).filter(hasValues)) {
     const itemSku = sku(row[inventorySkuIndex]);
     if (itemSku) inventoryStock.set(itemSku, stockNumber(row[inventoryStockIndex], 'Inventory On Hand', itemSku));
   }
+  return inventoryStock;
+}
 
+export function validateShopeeRows(shopeeRows) {
+  const shopeeHeader = shopeeRows?.[0] ?? [];
+  if (shopeeHeader.length !== 8 || SHOPEE_HEADERS.some((header, index) => shopeeHeader[index] !== header)) {
+    throw new Error('Shopee file must keep the fixed 8-column header.');
+  }
   const rows = shopeeRows.slice(1).filter(hasValues);
+  for (const row of rows) {
+    const itemSku = sku(row[5]);
+    if (itemSku) stockNumber(row[6], 'Shopee Stock', itemSku);
+  }
+  return rows;
+}
+
+export function buildStockImport(inventoryRows, shopeeRows) {
+  const inventoryStock = validateInventoryRows(inventoryRows);
+  const shopeeHeader = shopeeRows[0];
+  const rows = validateShopeeRows(shopeeRows);
   const skuCounts = new Map();
   for (const row of rows) {
     const itemSku = sku(row[5]);
-    if (itemSku) {
-      stockNumber(row[6], 'Shopee Stock', itemSku);
-      skuCounts.set(itemSku, (skuCounts.get(itemSku) ?? 0) + 1);
-    }
+    if (itemSku) skuCounts.set(itemSku, (skuCounts.get(itemSku) ?? 0) + 1);
   }
   const duplicateSkus = [...skuCounts]
     .filter(([, count]) => count > 1)
