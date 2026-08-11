@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import {
   AlertTriangle,
@@ -127,6 +127,11 @@ function Stat({ label, value, tone = 'text-white' }) {
 export default function BigSellerStockSync() {
   const [inventory, setInventory] = useState(emptyFile);
   const [shopee, setShopee] = useState(emptyFile);
+  const [enlargedGuide, setEnlargedGuide] = useState(null);
+  const guideDialogRef = useRef(null);
+  useEffect(() => {
+    if (enlargedGuide && !guideDialogRef.current?.open) guideDialogRef.current?.showModal();
+  }, [enlargedGuide]);
   const { result, comparisonError } = useMemo(() => {
     if (!inventory.data || !shopee.data) return { result: null, comparisonError: '' };
     try {
@@ -303,13 +308,12 @@ export default function BigSellerStockSync() {
                 <p className="mt-1 text-sm leading-6 text-gray-400">{step.text}</p>
               </div>
               <div className="border-t border-white/5 bg-white p-2">
-                <a
-                  href={`${guideBase}${step.image}`}
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  type="button"
+                  onClick={() => setEnlargedGuide(step)}
                   aria-label={`Enlarge ${step.title}`}
-                  title="Open full-size image"
-                  className="block cursor-zoom-in rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
+                  title="Enlarge image"
+                  className="block w-full cursor-zoom-in rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
                 >
                   <img
                     src={`${guideBase}${step.image}`}
@@ -317,12 +321,38 @@ export default function BigSellerStockSync() {
                     loading="lazy"
                     className="h-auto w-full rounded object-contain"
                   />
-                </a>
+                </button>
               </div>
             </article>
           ))}
         </div>
       </section>
+
+      <dialog
+        ref={guideDialogRef}
+        aria-label={enlargedGuide?.title}
+        onClose={() => setEnlargedGuide(null)}
+        onClick={event => { if (event.target === event.currentTarget) event.currentTarget.close(); }}
+        className="m-auto max-h-[94vh] max-w-[96vw] overflow-visible rounded-xl bg-white p-2 shadow-2xl backdrop:bg-black/85"
+      >
+        {enlargedGuide && (
+          <>
+            <button
+              type="button"
+              onClick={() => guideDialogRef.current?.close()}
+              aria-label="Close enlarged image"
+              className="absolute right-3 top-3 grid h-10 w-10 place-items-center rounded-full bg-black/75 text-2xl leading-none text-white hover:bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
+            >
+              ×
+            </button>
+            <img
+              src={`${guideBase}${enlargedGuide.image}`}
+              alt={enlargedGuide.alt}
+              className="max-h-[90vh] max-w-[92vw] object-contain"
+            />
+          </>
+        )}
+      </dialog>
     </div>
   );
 }
