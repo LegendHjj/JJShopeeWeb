@@ -207,7 +207,7 @@ const Layout = () => {
       </nav>
 
       {/* Main Content Area */}
-      <main className="flex-1 ml-0 md:ml-64 pt-16 md:pt-0 p-4 md:p-7 bg-[#0a0a0a] relative min-h-screen print:ml-0 print:p-0 print:bg-white">
+      <main className="min-w-0 flex-1 ml-0 md:ml-64 pt-16 md:pt-0 p-4 md:p-7 bg-[#0a0a0a] relative min-h-screen print:ml-0 print:p-0 print:bg-white">
          <div className="absolute inset-x-0 top-0 h-24 border-b border-white/5 bg-[#141414]/35 pointer-events-none print:hidden" />
          
          <div className="relative z-10 max-w-7xl mx-auto">

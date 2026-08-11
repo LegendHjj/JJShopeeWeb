@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import {
   AlertTriangle,
@@ -44,6 +44,10 @@ const guideSteps = [
 ];
 
 const emptyFile = { data: null, error: '' };
+const exportColumnWidths = [
+  { wch: 54 }, { wch: 20 }, { wch: 24 }, { wch: 64 },
+  { wch: 28 }, { wch: 26 }, { wch: 12 }, { wch: 12 },
+];
 
 function DropZone({ title, description, value, onFile }) {
   const inputRef = useRef(null);
@@ -57,7 +61,7 @@ function DropZone({ title, description, value, onFile }) {
   };
 
   return (
-    <div>
+    <div className="min-w-0">
       <div
         className={`min-h-48 rounded-xl border-2 border-dashed p-5 transition-colors ${
           dragging
@@ -100,7 +104,7 @@ function DropZone({ title, description, value, onFile }) {
         </button>
       </div>
       {value.data && (
-        <div className="mt-3 flex items-center gap-2 text-sm text-emerald-400">
+        <div className="mt-3 flex min-w-0 items-center gap-2 overflow-hidden text-sm text-emerald-400">
           <FileSpreadsheet size={16} />
           <span className="min-w-0 truncate font-medium">{value.data.name}</span>
           <span className="shrink-0 text-xs text-gray-500">{value.data.rows.length - 1} rows</span>
@@ -123,21 +127,12 @@ function Stat({ label, value, tone = 'text-white' }) {
 export default function BigSellerStockSync() {
   const [inventory, setInventory] = useState(emptyFile);
   const [shopee, setShopee] = useState(emptyFile);
-  const [result, setResult] = useState(null);
-  const [comparisonError, setComparisonError] = useState('');
-
-  useEffect(() => {
-    if (!inventory.data || !shopee.data) {
-      setResult(null);
-      setComparisonError('');
-      return;
-    }
+  const { result, comparisonError } = useMemo(() => {
+    if (!inventory.data || !shopee.data) return { result: null, comparisonError: '' };
     try {
-      setResult(buildStockImport(inventory.data.rows, shopee.data.rows));
-      setComparisonError('');
+      return { result: buildStockImport(inventory.data.rows, shopee.data.rows), comparisonError: '' };
     } catch (error) {
-      setResult(null);
-      setComparisonError(error.message);
+      return { result: null, comparisonError: error.message };
     }
   }, [inventory.data, shopee.data]);
 
@@ -176,8 +171,8 @@ export default function BigSellerStockSync() {
   const exportWorkbook = () => {
     if (!result?.summary.changedRows) return;
     const worksheet = XLSX.utils.aoa_to_sheet(result.outputRows);
-    if (shopee.data.columns) worksheet['!cols'] = shopee.data.columns;
-    if (shopee.data.firstRow) worksheet['!rows'] = [shopee.data.firstRow];
+    worksheet['!cols'] = shopee.data.columns || exportColumnWidths;
+    worksheet['!rows'] = [shopee.data.firstRow || { hpt: 30 }];
     shopee.data.headerStyles.forEach((style, column) => {
       const cell = worksheet[XLSX.utils.encode_cell({ r: 0, c: column })];
       if (style && cell) cell.s = style;
