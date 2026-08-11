@@ -293,7 +293,7 @@ export default function BigSellerStockSync() {
       <section className="rounded-2xl border border-white/5 bg-[#141414] p-4 md:p-6">
         <div className="mb-6">
           <h2 className="text-xl font-bold text-white">How to download and import the files</h2>
-          <p className="mt-1 text-sm text-gray-400">Follow these BigSeller steps each time you update Shopee stock.</p>
+          <p className="mt-1 text-sm text-gray-400">Follow these BigSeller steps each time you update Shopee stock. Click any image to enlarge it.</p>
         </div>
         <div className="grid gap-5 lg:grid-cols-2">
           {guideSteps.map(step => (
@@ -303,12 +303,21 @@ export default function BigSellerStockSync() {
                 <p className="mt-1 text-sm leading-6 text-gray-400">{step.text}</p>
               </div>
               <div className="border-t border-white/5 bg-white p-2">
-                <img
-                  src={`${guideBase}${step.image}`}
-                  alt={step.alt}
-                  loading="lazy"
-                  className="h-auto w-full rounded object-contain"
-                />
+                <a
+                  href={`${guideBase}${step.image}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Enlarge ${step.title}`}
+                  title="Open full-size image"
+                  className="block cursor-zoom-in rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500"
+                >
+                  <img
+                    src={`${guideBase}${step.image}`}
+                    alt={step.alt}
+                    loading="lazy"
+                    className="h-auto w-full rounded object-contain"
+                  />
+                </a>
               </div>
             </article>
           ))}
