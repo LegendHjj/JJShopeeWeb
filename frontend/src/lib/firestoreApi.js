@@ -35,6 +35,10 @@ export const COLLECTIONS = {
     prodActPriceCalc: 'tiktokProdActPriceCalcTikTok',
     prodStockCalc:    'tiktokProdStockCalcTikTok',
   },
+  shopeeSingapore: {
+    orgProductInfo: 'shopeeSingaporeOrgProductInfo',
+    prodActPriceCalc: 'shopeeSingaporeProdActPriceCalc',
+  },
   notes: 'ShopeeWebNotes',
   supportFAQ: 'shopeeSupportFAQ',
   _syncDeleteLog: '_syncDeleteLog',
@@ -42,6 +46,8 @@ export const COLLECTIONS = {
 
 // ─── All syncable collection names (flat list) ──────────────────────────────
 const ALL_SYNCABLE = [
+  COLLECTIONS.shopeeSingapore.orgProductInfo,
+  COLLECTIONS.shopeeSingapore.prodActPriceCalc,
   COLLECTIONS.shopee.orgProductInfo,
   COLLECTIONS.shopee.prodActPriceCalc,
   COLLECTIONS.shopee.prodStockCalc,
