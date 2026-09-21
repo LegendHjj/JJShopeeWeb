@@ -88,6 +88,7 @@ const Layout = () => {
     { path: '/profit-manager', icon: Package, label: 'Profit Manager' },
     { path: '/shopee-stock', icon: Package, label: 'Shopee Stock' },
     { path: '/bigseller-stock-sync', icon: ArrowRightLeft, label: 'BigSeller Stock Sync' },
+    { path: '/tiktok-stock-sync', icon: ArrowRightLeft, label: 'TikTok Stock Sync' },
     { path: '/china-costing', icon: Globe, label: 'China Costing' },
     { path: '/support-faq', icon: MessageSquare, label: 'Quick Reply' },
     { path: '/variant-checker', icon: FileSpreadsheet, label: 'Variant Checker' },

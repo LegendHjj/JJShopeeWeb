@@ -12,6 +12,7 @@ import VariantChecker from './pages/VariantChecker';
 import Troubleshooting from './pages/Troubleshooting';
 import ChinaCosting from './pages/ChinaCosting';
 import BigSellerStockSync from './pages/BigSellerStockSync';
+import TikTokStockSync from './pages/TikTokStockSync';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
             <Route path="profit-manager" element={<ProfitManager />} />
             <Route path="shopee-stock" element={<ShopeeStock />} />
             <Route path="bigseller-stock-sync" element={<BigSellerStockSync />} />
+            <Route path="tiktok-stock-sync" element={<TikTokStockSync />} />
             <Route path="support-faq" element={<SupportFAQ />} />
             <Route path="variant-checker" element={<VariantChecker />} />
             <Route path="china-costing" element={<ChinaCosting />} />
