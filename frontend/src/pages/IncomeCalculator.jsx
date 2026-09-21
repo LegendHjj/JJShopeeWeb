@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { fetchCollection, COLLECTIONS } from '../lib/firestoreApi';
 import { Upload, Calculator, RefreshCw, AlertCircle, Trash2, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
@@ -10,6 +10,8 @@ const CALC_EXTRA_FEE = false;
 const INC_DISCOUNT = false;
 
 const IncomeCalculator = () => {
+  const [source, setSource] = useState('shopee');
+  const requestId = useRef(0);
   const [productInfo, setProductInfo] = useState([]);
   const [loading, setLoading] = useState(true);
   const [calculating, setCalculating] = useState(false);
@@ -56,12 +58,18 @@ const IncomeCalculator = () => {
 
   useEffect(() => {
     fetchProductInfo();
-  }, []);
+    return () => { requestId.current++; };
+  }, [source]);
 
   const fetchProductInfo = async () => {
+    const request = ++requestId.current;
+    setTotalProfit(null);
+    setLogs([]);
+    setProductInfo([]);
     try {
       setLoading(true);
-      const data = await fetchCollection(COLLECTIONS.shopee.orgProductInfo);
+      const data = await fetchCollection(COLLECTIONS[source].orgProductInfo);
+      if (request !== requestId.current) return;
       const dataWithQty = data.map(item => ({
         ...item,
         qty: 0,
@@ -69,29 +77,32 @@ const IncomeCalculator = () => {
       }));
       setProductInfo(dataWithQty);
     } catch (error) {
+      if (request !== requestId.current) return;
       console.error('Failed to fetch orgProductInfo from Firestore', error);
       addLog('Error: Failed to fetch product info from Firestore.', 'error');
     } finally {
-      setLoading(false);
+      if (request === requestId.current) setLoading(false);
     }
   };
 
   const addLog = (message, type = 'info') => {
-    //setLogs(prev => [...prev, { id: Date.now() + Math.random(), message, type, time: new Date().toLocaleTimeString() }]);
-    setLogs(prev => [...prev, { message, type }]);
+    setLogs(prev => [...prev, { id: crypto.randomUUID(), message, type, time: new Date().toLocaleTimeString() }]);
   };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    const uploadRequest = requestId.current;
     const reader = new FileReader();
     reader.onload = (evt) => {
+      if (uploadRequest !== requestId.current) return;
       try {
         const bstr = evt.target.result;
         const wb = XLSX.read(bstr, { type: 'binary' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws);
+        setTotalProfit(null);
         processExcelData(data);
         addLog(`Successfully loaded Excel file: ${file.name}`, 'success');
       } catch (err) {
@@ -171,12 +182,14 @@ const IncomeCalculator = () => {
   };
 
   const handleResetQty = () => {
+    requestId.current++;
     setProductInfo(prev => prev.map(p => ({ ...p, qty: 0, totalBuyerOrder: 0 })));
     setTotalProfit(null);
-    setLogs();
+    setLogs([]);
   };
 
   const updateProductQty = (seqNr, field, value) => {
+    setTotalProfit(null);
     setProductInfo(prev => prev.map(p =>
       p.seqNr === seqNr ? { ...p, [field]: parseInt(value) || 0 } : p
     ));
@@ -199,6 +212,11 @@ const IncomeCalculator = () => {
           <p className="text-gray-400 mt-1 text-sm md:text-base">Calculate your total net profit from Excel sales data</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
+          <select aria-label="Income data source" value={source} onChange={e => { if (e.target.value === source) return; requestId.current++; setLoading(true); setSource(e.target.value); }} className="bg-[#1a1a1a] border border-white/10 text-white rounded-xl px-4 py-2.5 text-sm">
+            <option value="shopee">Shopee Data</option>
+            <option value="shopeeSingapore">Shopee Singapore</option>
+            <option value="tiktok">TikTok Data</option>
+          </select>
           <label className="flex items-center gap-2 px-4 py-2.5 md:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg cursor-pointer transition-all flex-1 md:flex-none justify-center">
             <Upload size={16} />
             <span className="font-semibold text-sm">Upload Excel</span>

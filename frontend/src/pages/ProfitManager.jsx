@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { fetchCollection, saveCollection, deleteDocument, COLLECTIONS } from '../lib/firestoreApi';
 import { Save, AlertCircle, RefreshCw, Calculator, Plus, X, ChevronDown, ArrowUpDown, ChevronUp, FileJson, Download, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -273,13 +273,14 @@ const DetailModal = ({ item, maxDiscPercent, onMaxDiscChange, onSave, onClose, o
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 const ProfitManager = () => {
+  const requestId = useRef(0);
   const [productCostData, setProductCostData] = useState([]);
   const [originalProductCostData, setOriginalProductCostData] = useState([]);
   const [originalData, setOriginalData]       = useState([]);
   // originalOriginalData removed — orgProductInfo diff now uses field-level comparison by seqNr
   const [loading, setLoading]                 = useState(true);
   const [saving, setSaving]                   = useState(false);
-  const [source, setSource]                   = useState('shopee'); // 'shopee' | 'tiktok'
+  const [source, setSource]                   = useState('shopee'); // 'shopee' | 'tiktok' | 'shopeeSingapore'
   const [maxDiscPercent, setMaxDiscPercent]   = useState(10);
   const [searchTerm, setSearchTerm]           = useState('');
   const [notification, setNotification]       = useState(null);
@@ -305,20 +306,26 @@ const ProfitManager = () => {
   useEffect(() => { fetchData(); }, [source]);
 
   const fetchData = async () => {
+    const request = ++requestId.current;
     try {
       setLoading(true);
-      const cols = source === 'tiktok' ? COLLECTIONS.tiktok : COLLECTIONS.shopee;
+      const cols = COLLECTIONS[source];
       const [costData, orgData] = await Promise.all([
         fetchCollection(cols.prodActPriceCalc),
         fetchCollection(cols.orgProductInfo),
       ]);
+      if (request !== requestId.current) return;
       setProductCostData((costData || []).map(item => ({ ...item, _localId: item._docId || Math.random().toString(36).substr(2, 9) })));
       setOriginalProductCostData(JSON.parse(JSON.stringify(costData || [])));
       setOriginalData((orgData || []).map(item => ({ ...item, _localId: item._docId || Math.random().toString(36).substr(2, 9) })));
     } catch (err) {
+      if (request !== requestId.current) return;
+      setProductCostData([]);
+      setOriginalData([]);
+      setOriginalProductCostData([]);
       showNotification('Error loading data from Firestore.', 'error');
     } finally {
-      setLoading(false);
+      if (request === requestId.current) setLoading(false);
     }
   };
 
@@ -354,7 +361,7 @@ const ProfitManager = () => {
   const persistSave = async (costData) => {
     setSaving(true);
     try {
-      const cols = source === 'tiktok' ? COLLECTIONS.tiktok : COLLECTIONS.shopee;
+      const cols = COLLECTIONS[source];
 
       // 1. Filter modified cost data
       // IMPORTANT: strip _localId (client-only) and _updatedAt (server-managed) before
@@ -480,7 +487,7 @@ const ProfitManager = () => {
       Notes: item.Notes ?? null
     }));
 
-    const filename = source === 'tiktok' ? 'prodActPriceCalcTikTok.json' : 'prodActPriceCalc.json';
+    const filename = { shopee: 'prodActPriceCalc.json', tiktok: 'prodActPriceCalcTikTok.json', shopeeSingapore: 'prodActPriceCalcSingapore.json' }[source];
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -515,7 +522,7 @@ const ProfitManager = () => {
     if (!window.confirm(`Permanently delete "${item.productName}" from both local and cloud?`)) return;
     try {
       setLoading(true);
-      const cols = source === 'tiktok' ? COLLECTIONS.tiktok : COLLECTIONS.shopee;
+      const cols = COLLECTIONS[source];
       if (item._docId) await deleteDocument(cols.prodActPriceCalc, item._docId);
       
       setProductCostData(prev => prev.filter(s => {
@@ -586,11 +593,14 @@ const ProfitManager = () => {
           {/* Source switcher */}
           <div className="relative flex-1 md:flex-none">
             <select
+              aria-label="Profit data source"
               value={source}
-              onChange={e => setSource(e.target.value)}
+              disabled={saving}
+              onChange={e => { setSelectedItem(null); setSource(e.target.value); }}
               className="appearance-none w-full bg-[#1a1a1a] border border-white/10 text-white rounded-xl pl-4 pr-10 py-2.5 text-sm font-medium outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="shopee">🟠 Shopee Data</option>
+              <option value="shopeeSingapore">🇸🇬 Shopee Singapore</option>
               <option value="tiktok">⚫ TikTok Data</option>
             </select>
             <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
