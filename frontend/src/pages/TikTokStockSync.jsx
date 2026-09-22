@@ -1,7 +1,9 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { Download, ArrowRightLeft, UploadCloud } from 'lucide-react';
 import { buildTikTokStock } from '../lib/tiktokStockSync';
+
+const adjustmentKey = 'tiktok_stock_adjustment';
 
 const steps = [
   ['Download the latest Shopee stock', 'Open Shopee Mass Update, select Sales Info, click Generate, then Download. Export all products to match as many TikTok SKUs as possible.', 'step1'],
@@ -14,7 +16,22 @@ const steps = [
 export default function TikTokStockSync() {
   const input = useRef(null);
   const request = useRef(0);
-  const [result, setResult] = useState(null);
+  const [source, setSource] = useState(null);
+  const [adjustment, setAdjustment] = useState(() => {
+    try {
+      const saved = Number(localStorage.getItem(adjustmentKey) ?? 0);
+      return String(Number.isSafeInteger(saved) && saved <= 0 ? saved : 0);
+    } catch { return '0'; }
+  });
+  const [storageError, setStorageError] = useState('');
+  const adjustmentNumber = adjustment.trim() === '' ? NaN : Number(adjustment);
+  const validAdjustment = Number.isSafeInteger(adjustmentNumber) && adjustmentNumber <= 0;
+  const { result, comparisonError } = useMemo(() => {
+    if (!source || !validAdjustment) return { result: null, comparisonError: '' };
+    try {
+      return { result: buildTikTokStock(source.template, source.rows, adjustmentNumber), comparisonError: '' };
+    } catch (err) { return { result: null, comparisonError: err.message }; }
+  }, [source, validAdjustment, adjustmentNumber]);
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -23,7 +40,7 @@ export default function TikTokStockSync() {
 
   const load = async file => {
     const id = ++request.current;
-    setResult(null);
+    setSource(null);
     setError('');
     setName(file.name);
     setBusy(true);
@@ -35,8 +52,8 @@ export default function TikTokStockSync() {
       const workbook = XLSX.read(buffer, { type: 'array' });
       if (workbook.SheetNames.length !== 1) throw new Error('Please upload the original single-sheet Shopee Sales Info export.');
       const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1, defval: null });
-      const next = buildTikTokStock(await response.arrayBuffer(), rows);
-      if (id === request.current) setResult(next);
+      const template = await response.arrayBuffer();
+      if (id === request.current) setSource({ template, rows });
     } catch (err) {
       if (id === request.current) setError(err.message || 'Unable to read this workbook.');
     } finally {
@@ -64,7 +81,8 @@ export default function TikTokStockSync() {
       <section className="rounded-2xl border border-white/5 bg-[#141414] p-4 md:p-6">
         <h2 className="text-lg font-bold">Upload Shopee Sales Info</h2>
         <p className="mt-1 text-sm text-gray-400">Saved TikTok template: ASHLIFE 205 · 637 SKU rows · September 2026. Upload a fresh Shopee export each time.</p>
-        <div className={`mt-5 rounded-xl border-2 border-dashed p-6 ${dragging ? 'border-orange-400 bg-orange-500/10' : 'border-white/10 bg-black/20'}`}
+        <div className="mt-5 grid gap-5 md:grid-cols-[minmax(0,1fr)_260px]">
+        <div className={`rounded-xl border-2 border-dashed p-6 ${dragging ? 'border-orange-400 bg-orange-500/10' : 'border-white/10 bg-black/20'}`}
           onDragOver={event => { event.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
           onDrop={event => { event.preventDefault(); setDragging(false); if (event.dataTransfer.files[0]) load(event.dataTransfer.files[0]); }}>
@@ -75,8 +93,27 @@ export default function TikTokStockSync() {
           </button>
           <input ref={input} type="file" aria-label="Shopee Sales Info Excel" accept=".xlsx" className="hidden" onChange={event => { if (event.target.files[0]) load(event.target.files[0]); event.target.value = ''; }} />
         </div>
+        <div className="rounded-xl border border-white/10 bg-black/20 p-5">
+          <label htmlFor="stock-adjustment" className="block font-semibold">Stock adjustment (optional)</label>
+          <input id="stock-adjustment" type="number" max="0" step="1" required value={adjustment}
+            aria-invalid={!validAdjustment} aria-describedby="adjustment-help adjustment-error"
+            onChange={event => {
+              const value = event.target.value;
+              setAdjustment(value);
+              if (value.trim() !== '' && Number.isSafeInteger(Number(value)) && Number(value) <= 0) {
+                try { localStorage.setItem(adjustmentKey, String(Number(value))); setStorageError(''); }
+                catch { setStorageError('This browser could not save your setting. It applies for this visit only.'); }
+              }
+            }}
+            className="mt-3 w-full rounded-lg border border-white/20 bg-[#141414] px-3 py-2 text-white focus-visible:outline-2 focus-visible:outline-orange-400" />
+          <p id="adjustment-help" className="mt-3 text-sm leading-6 text-gray-400">0 keeps Shopee stock as-is. Use -1, -2, -3… to reserve stock. With -2: 60 → 58, 8 → 6, and 1 → 0. Applies to every matched SKU and remembers your setting in this browser.</p>
+          <p id="adjustment-error" role="alert" className="mt-2 text-sm text-red-300">{!validAdjustment ? 'Enter 0 or a negative whole number.' : ''}</p>
+          {storageError && <p role="status" className="mt-2 text-sm text-amber-300">{storageError}</p>}
+        </div>
+        </div>
         <p role="status" className="mt-3 break-all text-sm text-gray-400">{busy ? 'Reading file and matching SKUs…' : name}</p>
         {error && <p role="alert" className="mt-3 text-sm text-red-300">{error}</p>}
+        {comparisonError && <p role="alert" className="mt-3 text-sm text-red-300">{comparisonError}</p>}
       </section>
       {result && <section aria-label="Matching results" className="space-y-5 rounded-2xl border border-white/5 bg-[#141414] p-4 md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -86,7 +123,7 @@ export default function TikTokStockSync() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[['TikTok rows', result.total], ['Matched', result.matched], ['Quantities changed', result.changed], ['Unmatched', result.unmatched.length]].map(([label, value]) => <div key={label}><p className="text-2xl font-bold text-orange-400">{value}</p><p className="text-sm text-gray-400">{label}</p></div>)}
         </div>
-        <p className="text-sm leading-6 text-gray-400">Matching is case-sensitive and ignores surrounding spaces. Every matched TikTok row uses the Shopee quantity, including zero. Unmatched and blank-SKU rows retain their saved template quantities. Warehouse cells marked “/” stay unchanged.</p>
+        <p className="text-sm leading-6 text-gray-400">Matching is case-sensitive and ignores surrounding spaces. Every matched TikTok row uses Shopee stock plus the adjustment ({adjustmentNumber}), with a minimum of 0. Unmatched and blank-SKU rows retain their saved template quantities. Warehouse cells marked “/” stay unchanged.</p>
         {!result.matched && <p role="alert" className="text-amber-300">No SKUs matched. Check your Shopee export and SKU spelling before downloading.</p>}
         {result.conflicts.length > 0 && <p role="alert" className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-sm text-red-300">Conflicting Shopee quantities: {result.conflicts.join(', ')}. These duplicate SKUs were not updated. Correct their SKU names or quantities before syncing them.</p>}
         {(result.unmatched.length > 0 || result.blank > 0 || result.unlinked > 0) && <details className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-200">

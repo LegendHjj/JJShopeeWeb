@@ -11,6 +11,14 @@ const source = (...rows) => [
   ...rows.map(([sku, stock]) => ['1', '', '', '', '', sku, '', '', '', stock]),
 ];
 
+test('optional adjustment reduces matched stock, floors at zero and rejects invalid adjustments', () => {
+  const rows = source(['SISALPOUCHBAGWITHBEARDS', 60], ['SISALPOUCHBAGNOBEARDS', 8], ['MACARONCURVEDH', 1], ['CLIPHANGERBLACK', 0]);
+  const output = XLSX.read(buildTikTokStock(template, rows, -2).bytes).Sheets.Sheet1;
+  assert.deepEqual(['I4', 'I5', 'I6', 'I7'].map(cell => output[cell].v), [58, 6, 0, 0]);
+  assert.equal(XLSX.read(buildTikTokStock(template, rows).bytes).Sheets.Sheet1.I4.v, 60);
+  for (const value of [1, -1.5, NaN, Infinity, '', '-2']) assert.throws(() => buildTikTokStock(template, rows, value), /adjustment/);
+});
+
 test('updates only matched I cells, including zero, preserving every other template entry', () => {
   const result = buildTikTokStock(new Uint8Array(template).buffer, source(['SISALPOUCHBAGWITHBEARDS', 0], ['SISALPOUCHBAGNOBEARDS', 23]));
   assert.equal(result.matched, 2);

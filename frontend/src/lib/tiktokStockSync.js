@@ -22,7 +22,8 @@ export function readShopeeStock(rows) {
   return { stocks, conflicts: [...conflicts] };
 }
 
-export function buildTikTokStock(template, shopeeRows) {
+export function buildTikTokStock(template, shopeeRows, adjustment = 0) {
+  if (!Number.isSafeInteger(adjustment) || adjustment > 0) throw new Error('Stock adjustment must be 0 or a negative whole number.');
   template = new Uint8Array(template);
   const { stocks, conflicts } = readShopeeStock(shopeeRows);
   const workbook = XLSX.read(template, { type: 'array' });
@@ -41,7 +42,8 @@ export function buildTikTokStock(template, shopeeRows) {
     if (row[8] === '/') { unlinked++; continue; }
     if (!stocks.has(sku)) { unmatched.push(sku); continue; }
     matched++;
-    if (Number(row[8]) !== stocks.get(sku)) updates.set(`I${index + 1}`, stocks.get(sku));
+    const quantity = Math.max(0, stocks.get(sku) + adjustment);
+    if (Number(row[8]) !== quantity) updates.set(`I${index + 1}`, quantity);
   }
 
   // Edit the original XML so IDs, protected columns, styles and workbook metadata survive exactly.
