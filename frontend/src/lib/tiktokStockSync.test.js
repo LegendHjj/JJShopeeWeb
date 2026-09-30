@@ -11,6 +11,20 @@ const source = (...rows) => [
   ...rows.map(([sku, stock]) => ['1', '', '', '', '', sku, '', '', '', stock]),
 ];
 
+test('accepts localized Shopee labels using stable field identifiers and still rejects wrong columns', () => {
+  const english = source(['SISALPOUCHBAGWITHBEARDS', 60], ['SISALPOUCHBAGNOBEARDS', 1]);
+  const chinese = english.map(row => [...row]);
+  chinese[2] = ['商品ID', '商品名称', '规格编号', '名称', '主商品货号', '商品货号', '价格', '直营商品价格:SG', 'GTIN', '库存'];
+  chinese[3][6] = '必填';
+  assert.deepEqual(readShopeeStock(chinese), readShopeeStock(english));
+  assert.deepEqual(XLSX.read(buildTikTokStock(template, chinese, -2).bytes).Sheets.Sheet1, XLSX.read(buildTikTokStock(template, english, -2).bytes).Sheets.Sheet1);
+  for (const [row, column] of [[0, 5], [0, 9], [1, 0]]) {
+    const invalid = chinese.map(values => [...values]);
+    invalid[row][column] = 'wrong_field';
+    assert.throws(() => readShopeeStock(invalid), /Sales Info/);
+  }
+});
+
 test('optional adjustment reduces matched stock, floors at zero and rejects invalid adjustments', () => {
   const rows = source(['SISALPOUCHBAGWITHBEARDS', 60], ['SISALPOUCHBAGNOBEARDS', 8], ['MACARONCURVEDH', 1], ['CLIPHANGERBLACK', 0]);
   const output = XLSX.read(buildTikTokStock(template, rows, -2).bytes).Sheets.Sheet1;

@@ -3,7 +3,8 @@ import * as XLSX from 'xlsx/xlsx.mjs';
 const skuText = value => String(value ?? '').trim();
 
 export function readShopeeStock(rows) {
-  if (rows[0]?.[5] !== 'et_title_variation_sku' || rows[0]?.[9] !== 'et_title_variation_stock' || rows[1]?.[0] !== 'sales_info' || rows[2]?.[5] !== 'SKU' || rows[2]?.[9] !== 'Stock') {
+  // Shopee translates the visible labels; these field identifiers stay the same across languages.
+  if (rows[0]?.[5] !== 'et_title_variation_sku' || rows[0]?.[9] !== 'et_title_variation_stock' || rows[1]?.[0] !== 'sales_info') {
     throw new Error('Upload the original Shopee Sales Info export (SKU in column F, Stock in column J).');
   }
   const stocks = new Map();
