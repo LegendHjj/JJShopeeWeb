@@ -77,7 +77,7 @@ export default function TikTokStockSync() {
         <h1 className="flex items-center gap-3 text-2xl font-bold text-white md:text-3xl"><ArrowRightLeft className="text-orange-400" />Shopee → TikTok Stock Sync</h1>
         <p className="mt-2 text-sm text-gray-400">Use your latest Shopee stock to prepare a TikTok bulk restock Excel file.</p>
       </header>
-      <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4 text-sm text-emerald-200">Your Shopee file is processed privately in this browser. Match SKU (F) → Seller SKU (D), then copy Stock (J) → Quantity (I).</p>
+      <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-4 text-sm text-emerald-200">Your Shopee file is processed privately in this browser. Match Shopee SKU (F) → TikTok Seller SKU (D), then copy Stock (J) → Quantity (I). For products without variations, use Parent SKU (E) when Shopee SKU (F) is blank or 0.</p>
       <section className="rounded-2xl border border-white/5 bg-[#141414] p-4 md:p-6">
         <h2 className="text-lg font-bold">Upload Shopee Sales Info</h2>
         <p className="mt-1 text-sm text-gray-400">Saved TikTok template: ASHLIFE 205 · 637 SKU rows · September 2026. Upload a fresh Shopee export each time.</p>

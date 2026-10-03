@@ -4,14 +4,18 @@ const skuText = value => String(value ?? '').trim();
 
 export function readShopeeStock(rows) {
   // Shopee translates the visible labels; these field identifiers stay the same across languages.
-  if (rows[0]?.[5] !== 'et_title_variation_sku' || rows[0]?.[9] !== 'et_title_variation_stock' || rows[1]?.[0] !== 'sales_info') {
-    throw new Error('Upload the original Shopee Sales Info export (SKU in column F, Stock in column J).');
+  if (rows[0]?.[3] !== 'et_title_variation_name' || rows[0]?.[4] !== 'et_title_parent_sku' || rows[0]?.[5] !== 'et_title_variation_sku' || rows[0]?.[9] !== 'et_title_variation_stock' || rows[1]?.[0] !== 'sales_info') {
+    throw new Error('Upload the original Shopee Sales Info export (Parent SKU in column E, SKU in column F, Stock in column J).');
   }
   const stocks = new Map();
   const conflicts = new Set();
   for (const row of rows.slice(6)) {
-    const sku = skuText(row[5]);
-    if (!sku) continue;
+    const variationSku = skuText(row[5]);
+    // Products without variations may have only a parent SKU; zero is an empty-SKU placeholder.
+    const sku = variationSku && variationSku !== '0'
+      ? variationSku
+      : !skuText(row[3]) ? skuText(row[4]) : '';
+    if (!sku || sku === '0') continue;
     const value = row[9];
     const stock = typeof value === 'number' || (typeof value === 'string' && value.trim()) ? Number(value) : NaN;
     if (!Number.isSafeInteger(stock) || stock < 0) throw new Error(`Stock for SKU "${sku}" must be a non-negative whole number.`);

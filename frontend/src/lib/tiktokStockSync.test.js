@@ -6,9 +6,9 @@ import { buildTikTokStock, readShopeeStock } from './tiktokStockSync.js';
 
 const template = fs.readFileSync(new URL('../../public/templates/tiktok-stock.xlsx', import.meta.url));
 const source = (...rows) => [
-  ['et_title_product_id', '', '', '', '', 'et_title_variation_sku', '', '', '', 'et_title_variation_stock'],
+  ['et_title_product_id', '', '', 'et_title_variation_name', 'et_title_parent_sku', 'et_title_variation_sku', '', '', '', 'et_title_variation_stock'],
   ['sales_info'], ['Product ID', '', '', '', '', 'SKU', '', '', '', 'Stock'], [], [], [],
-  ...rows.map(([sku, stock]) => ['1', '', '', '', '', sku, '', '', '', stock]),
+  ...rows.map(([sku, stock, parent = '', variation = '']) => ['1', '', '', variation, parent, sku, '', '', '', stock]),
 ];
 
 test('accepts localized Shopee labels using stable field identifiers and still rejects wrong columns', () => {
@@ -18,10 +18,66 @@ test('accepts localized Shopee labels using stable field identifiers and still r
   chinese[3][6] = '必填';
   assert.deepEqual(readShopeeStock(chinese), readShopeeStock(english));
   assert.deepEqual(XLSX.read(buildTikTokStock(template, chinese, -2).bytes).Sheets.Sheet1, XLSX.read(buildTikTokStock(template, english, -2).bytes).Sheets.Sheet1);
-  for (const [row, column] of [[0, 5], [0, 9], [1, 0]]) {
+  for (const [row, column] of [[0, 3], [0, 4], [0, 5], [0, 9], [1, 0]]) {
     const invalid = chinese.map(values => [...values]);
     invalid[row][column] = 'wrong_field';
     assert.throws(() => readShopeeStock(invalid), /Sales Info/);
+  }
+});
+
+test('matches standalone products by parent SKU when variation SKU is blank or zero', () => {
+  const result = readShopeeStock(source(
+    [null, 50, ' POUCHBAGBLACK '],
+    ['', 44, 'LENSCLEANSPRAY'],
+    [' 0 ', 297, 'COLORFULBOUNCYBALLS'],
+    [0, 96, 'TRANSBOXSMALL'],
+    [undefined, 0, 'NANOSPONGE'],
+    ['CHILD', 8, 'PARENT', 'Blue'],
+    ['001', 3, 'OTHERPARENT'],
+    ['0', 9, ''],
+    [null, 10, '0'],
+  ));
+  assert.deepEqual([...result.stocks], [
+    ['POUCHBAGBLACK', 50], ['LENSCLEANSPRAY', 44], ['COLORFULBOUNCYBALLS', 297],
+    ['TRANSBOXSMALL', 96], ['NANOSPONGE', 0], ['CHILD', 8], ['001', 3],
+  ]);
+  assert.deepEqual(result.conflicts, []);
+});
+
+test('does not use parent stock for named variations with missing seller SKUs', () => {
+  const { stocks } = readShopeeStock(source(
+    ['', 50, 'SHARED-PARENT', 'Blue'],
+    ['0', 44, 'SHARED-PARENT', 'Red'],
+    ['CHILD', 12, 'SHARED-PARENT', 'Green'],
+  ));
+  assert.deepEqual([...stocks], [['CHILD', 12]]);
+});
+
+test('validates stock and duplicate quantities after resolving parent SKUs', () => {
+  for (const stock of ['', null, -1, 1.5, 'bad']) {
+    assert.throws(() => readShopeeStock(source([null, stock, 'PARENT'])), /whole number/);
+  }
+  const duplicate = readShopeeStock(source([null, 1, 'PARENT'], ['PARENT', 2]));
+  assert.deepEqual(duplicate.conflicts, ['PARENT']);
+  assert.equal(duplicate.stocks.has('PARENT'), false);
+  assert.deepEqual([...readShopeeStock(source([null, 1, 'PARENT'], ['PARENT', 1])).stocks], [['PARENT', 1]]);
+});
+
+test('exports parent SKU stock to every matching TikTok row with the stock adjustment', () => {
+  const result = buildTikTokStock(template, source(
+    ['0', 297, 'COLORFULBOUNCYBALLS'],
+    [null, 50, 'POUCHBAGBLACK'],
+    [0, 96, 'TRANSBOXSMALL'],
+    ['', 0, 'NANOSPONGE'],
+  ), -2);
+  assert.equal(result.matched, 5);
+  assert.equal(result.changed, 4);
+  assert.deepEqual(result.conflicts, []);
+  const before = XLSX.read(template).Sheets.Sheet1;
+  const after = XLSX.read(result.bytes).Sheets.Sheet1;
+  assert.deepEqual(['I15', 'I39', 'I58', 'I167', 'I49'].map(cell => after[cell].v), [295, 48, 94, 94, 0]);
+  for (const key of Object.keys(before).filter(k => !['I15', 'I39', 'I58', 'I167'].includes(k))) {
+    assert.deepEqual(after[key], before[key], key);
   }
 });
 
